@@ -115,6 +115,7 @@ class Controller(wsgi.Controller):
     def __init__(self, ext_mgr=None, **kwargs):
         super(Controller, self).__init__(**kwargs)
         self.compute_api = compute.API()
+        self.keypair_api = compute.api.KeypairAPI()
         self.ext_mgr = ext_mgr
 
     def index(self, req):
@@ -259,6 +260,14 @@ class Controller(wsgi.Controller):
                                        expected_attrs=expected_attrs)
         req.cache_db_instance(instance)
         return instance
+
+    def _get_keypair(self, context, req, key_name):
+        """Utility function for looking up a keypair by name."""
+        keypair = common.get_key_pair(self.keypair_api,
+                                      context,
+                                      key_name)
+        req.cache_db_items('keypairs', [keypair], 'name')
+        return keypair
 
     def _check_string_length(self, value, name, max_length=None):
         try:
@@ -932,6 +941,34 @@ class Controller(wsgi.Controller):
                 e, 'changePassword', id)
         except NotImplementedError:
             msg = _("Unable to set password on instance")
+            raise exc.HTTPNotImplemented(explanation=msg)
+        return webob.Response(status_int=202)
+
+    @wsgi.response(202)
+    @wsgi.action('changeKeypair')
+    def _action_change_keypair(self, req, id, body):
+        context = req.environ['nova.context']
+        if (not body.get('changeKeypair')
+                or 'keypairName' not in body['changeKeypair']):
+            msg = _("No keypairName was specified")
+            raise exc.HTTPBadRequest(explanation=msg)
+
+        key_name = body['changeKeypair']['keypairName']
+        if not isinstance(key_name, six.string_types) or key_name == '':
+            msg = _("keypairName was invalid")
+            raise exc.HTTPBadRequest(explanation=msg)
+        keypair = self._get_keypair(context, req, key_name)
+
+        server = self._get_server(context, req, id)
+        try:
+            self.compute_api.set_keypair(context, server, keypair)
+        except exception.InstanceAdminKeypairSetFailed as e:
+            raise exc.HTTPConflict(explanation=e.format_message())
+        except exception.InstanceInvalidState as e:
+            raise common.raise_http_conflict_for_instance_invalid_state(
+                e, 'changeKeypair', id)
+        except NotImplementedError:
+            msg = _("Unable to set keypair on instance")
             raise exc.HTTPNotImplemented(explanation=msg)
         return webob.Response(status_int=202)
 

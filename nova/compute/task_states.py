@@ -41,6 +41,9 @@ IMAGE_BACKUP = 'image_backup'
 # possible task states during set_admin_password()
 UPDATING_PASSWORD = 'updating_password'
 
+# possible task states during set_keypair()
+UPDATING_KEYPAIR = 'updating_keypair'
+
 # possible task states during resize()
 RESIZE_PREP = 'resize_prep'
 RESIZE_MIGRATING = 'resize_migrating'

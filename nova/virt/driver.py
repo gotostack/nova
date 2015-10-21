@@ -1062,6 +1062,14 @@ class ComputeDriver(object):
         """
         raise NotImplementedError()
 
+    def set_keypair(self, instance, key):
+        """Set the admin keypair on the specified instance.
+
+        :param instance: nova.objects.instance.Instance
+        :param key: the new key
+        """
+        raise NotImplementedError()
+
     def inject_file(self, instance, b64_path, b64_contents):
         """Writes a file on the specified instance.
 

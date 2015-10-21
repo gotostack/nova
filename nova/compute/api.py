@@ -2895,6 +2895,24 @@ class API(base.Base):
                                                new_pass=password)
 
     @wrap_check_policy
+    @check_instance_lock
+    @check_instance_cell
+    @check_instance_state(vm_state=[vm_states.ACTIVE])
+    def set_keypair(self, context, instance, key):
+        """Set the key pair for the given instance."""
+        instance.task_state = task_states.UPDATING_KEYPAIR
+        instance.key_name = key.name
+        instance.key_data = key.public_key
+        instance.save(expected_task_state=[None])
+
+        self._record_action_start(context, instance,
+                                  instance_actions.CHANGE_KEYPAIR)
+
+        self.compute_rpcapi.set_keypair(context,
+                                        instance=instance,
+                                        key=key)
+
+    @wrap_check_policy
     @check_instance_host
     def get_vnc_console(self, context, instance, console_type):
         """Get a url to an instance Console."""

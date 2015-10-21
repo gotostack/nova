@@ -29,6 +29,7 @@ from nova import test
 from nova.tests.unit import fake_block_device
 from nova.tests.unit import fake_flavor
 from nova.tests.unit import fake_instance
+from nova.tests.unit import fake_keypair
 
 CONF = cfg.CONF
 
@@ -46,6 +47,9 @@ class ComputeRpcAPITestCase(test.NoDBTestCase):
         self.fake_instance_obj = fake_instance.fake_instance_obj(self.context,
                                                    **instance_attr)
         self.fake_instance = jsonutils.to_primitive(self.fake_instance_obj)
+        self.fake_keypair_obj = fake_keypair.fake_keypair_obj(
+            context, instance=self.fake_instance)
+        self.fake_keypair = jsonutils.to_primitive(self.fake_keypair_obj)
         self.fake_volume_bdm = objects_block_dev.BlockDeviceMapping(
                 **fake_block_device.FakeDbBlockDeviceDict(
                     {'source_type': 'volume', 'destination_type': 'volume',
@@ -451,6 +455,11 @@ class ComputeRpcAPITestCase(test.NoDBTestCase):
         self._test_compute_api('set_admin_password', 'call',
                 instance=self.fake_instance_obj, new_pass='pw',
                 version='4.0')
+
+    def test_set_keypair(self):
+        self._test_compute_api('set_keypair', 'call',
+                instance=self.fake_instance_obj, key=self.fake_keypair,
+                version='4.12')
 
     def test_set_host_enabled(self):
         self._test_compute_api('set_host_enabled', 'call',

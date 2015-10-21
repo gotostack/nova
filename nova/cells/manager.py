@@ -569,6 +569,9 @@ class CellsManager(manager.Manager):
     def set_admin_password(self, ctxt, instance, new_pass):
         self.msg_runner.set_admin_password(ctxt, instance, new_pass)
 
+    def set_keypair(self, ctxt, instance, key):
+        self.msg_runner.set_keypair(ctxt, instance, key)
+
     def get_keypair_at_top(self, ctxt, user_id, name):
         responses = self.msg_runner.get_keypair_at_top(ctxt, user_id, name)
         keypairs = [resp.value for resp in responses if resp.value is not None]

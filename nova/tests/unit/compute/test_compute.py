@@ -4316,6 +4316,7 @@ class ComputeTestCase(BaseTestCase):
         migration.instance_uuid = 'b48316c5-71e8-45e4-9884-6c78055b9b13'
         migration.new_instance_type_id = '1'
         instance_type = objects.Flavor()
+        key = objects.KeyPair()
 
         actions = [
             ("reboot_instance", task_states.REBOOTING,
@@ -4342,6 +4343,8 @@ class ComputeTestCase(BaseTestCase):
                                   'on_shared_storage': False}),
             ("set_admin_password", task_states.UPDATING_PASSWORD,
                                    {'new_pass': None}),
+            ("set_keypair", task_states.UPDATING_KEYPAIR,
+                            {'key': key}),
             ("rescue_instance", task_states.RESCUING,
                                 {'rescue_password': None,
                                  'rescue_image_ref': None,

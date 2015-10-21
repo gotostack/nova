@@ -676,7 +676,7 @@ class ComputeVirtAPI(virtapi.VirtAPI):
 class ComputeManager(manager.Manager):
     """Manages the running instances from creation to destruction."""
 
-    target = messaging.Target(version='4.11')
+    target = messaging.Target(version='4.12')
 
     # How long to wait in seconds before re-issuing a shutdown
     # signal to an instance during power off.  The overall
@@ -3327,6 +3327,64 @@ class ComputeManager(manager.Manager):
             # API caller.  The real exception is logged above
             _msg = _('error setting admin password')
             raise exception.InstancePasswordSetFailed(
+                instance=instance.uuid, reason=_msg)
+
+    @wrap_exception()
+    @reverts_task_state
+    @wrap_instance_event
+    @wrap_instance_fault
+    def set_keypair(self, context, instance, key):
+        """Set the key pair for an instance on this host.
+
+        This is generally only called by API changeKeypair after an
+        image has been built.
+
+        @param context: Nova auth context.
+        @param instance: Nova instance object.
+        @param key: The new admin keypair for the instance.
+        """
+
+        context = context.elevated()
+
+        current_power_state = self._get_power_state(context, instance)
+        expected_state = power_state.RUNNING
+
+        if current_power_state != expected_state:
+            instance.task_state = None
+            instance.save(expected_task_state=task_states.UPDATING_KEYPAIR)
+            _msg = _('instance %s is not running') % instance.uuid
+            raise exception.InstanceAdminKeypairSetFailed(
+                instance=instance.uuid, reason=_msg)
+
+        try:
+            self.driver.set_keypair(instance, key)
+            LOG.info(_LI("Admin keypair set"), instance=instance)
+            instance.task_state = None
+            instance.save(
+                expected_task_state=task_states.UPDATING_KEYPAIR)
+        except NotImplementedError:
+            LOG.warning(_LW('set_keypair is not implemented '
+                            'by this driver or guest instance.'),
+                        instance=instance)
+            instance.task_state = None
+            instance.save(
+                expected_task_state=task_states.UPDATING_KEYPAIR)
+            raise NotImplementedError(_('set_keypair is not implemented '
+                                        'by this driver or guest instance.'))
+        except exception.UnexpectedTaskStateError:
+            # interrupted by another (most likely delete) task
+            # do not retry
+            raise
+        except Exception:
+            # Catch all here because this could be anything.
+            LOG.exception(_LE('set_keypair failed'),
+                          instance=instance)
+            self._set_instance_obj_error_state(context, instance)
+            # We create a new exception here so that we won't
+            # potentially reveal sensitive information to the
+            # API caller.  The real exception is logged above
+            _msg = _('error setting admin keypair')
+            raise exception.InstanceAdminKeypairSetFailed(
                 instance=instance.uuid, reason=_msg)
 
     @wrap_exception()

@@ -200,6 +200,9 @@ class FakeDriver(driver.ComputeDriver):
     def set_admin_password(self, instance, new_pass):
         pass
 
+    def set_keypair(self, instance, key):
+        pass
+
     def inject_file(self, instance, b64_path, b64_contents):
         pass
 

@@ -518,6 +518,14 @@ def get_instance(compute_api, context, instance_id, expected_attrs=None):
         raise exc.HTTPNotFound(explanation=e.format_message())
 
 
+def get_key_pair(keypair_api, context, key_name):
+    """Fetch a keypair from the compute API, handling error checking."""
+    try:
+        return keypair_api.get_key_pair(context, context.user_id, key_name)
+    except exception.KeypairNotFound as e:
+        raise exc.HTTPNotFound(explanation=e.format_message())
+
+
 def normalize_name(name):
     # NOTE(alex_xu): This method is used by v2.1 legacy v2 compat mode.
     # In the legacy v2 API, some of APIs strip the spaces and some of APIs not.

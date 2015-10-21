@@ -934,6 +934,10 @@ class _TargetedMessageMethods(_BaseMessageMethods):
         self._call_compute_api_with_obj(message.ctxt, instance,
                 'set_admin_password', new_pass)
 
+    def set_keypair(self, message, instance, key):
+        self._call_compute_api_with_obj(message.ctxt, instance,
+                'set_keypair', key)
+
 
 class _BroadcastMessageMethods(_BaseMessageMethods):
     """These are the methods that can be called as a part of a broadcast
@@ -1808,6 +1812,10 @@ class MessageRunner(object):
     def set_admin_password(self, ctxt, instance, new_pass):
         self._instance_action(ctxt, instance, 'set_admin_password',
                 extra_kwargs={'new_pass': new_pass})
+
+    def set_keypair(self, ctxt, instance, key):
+        self._instance_action(ctxt, instance, 'set_keypair',
+                extra_kwargs={'key': key})
 
     def get_keypair_at_top(self, ctxt, user_id, name):
         """Get Key Pair by name at top level cell."""

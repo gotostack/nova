@@ -51,6 +51,7 @@ from nova.tests.unit.compute import fake_resource_tracker
 from nova.tests.unit import fake_block_device
 from nova.tests.unit import fake_flavor
 from nova.tests.unit import fake_instance
+from nova.tests.unit import fake_keypair
 from nova.tests.unit import fake_network
 from nova.tests.unit import fake_network_cache_model
 from nova.tests.unit import fake_server_actions
@@ -2546,6 +2547,126 @@ class ComputeManagerUnitTestCase(test.NoDBTestCase):
         exc = NotImplementedError()
         expected_exception = NotImplementedError
         self._do_test_set_admin_password_driver_error(
+            exc, vm_states.ACTIVE, None, expected_exception)
+
+    @mock.patch('nova.compute.manager.ComputeManager._get_power_state',
+                return_value=power_state.RUNNING)
+    @mock.patch.object(objects.Instance, 'save')
+    def test_set_keypair(self, instance_save_mock, power_state_mock):
+        # Ensure instance can have its admin keypair set.
+        instance = fake_instance.fake_instance_obj(
+            self.context,
+            vm_state=vm_states.ACTIVE,
+            task_state=task_states.UPDATING_KEYPAIR)
+        key = fake_keypair.fake_keypair_obj(self.context,
+                                            instance=instance)
+
+        @mock.patch.object(self.context, 'elevated', return_value=self.context)
+        @mock.patch.object(self.compute.driver, 'set_keypair')
+        def do_test(driver_mock, elevated_mock):
+            # call the manager method
+            self.compute.set_keypair(self.context, instance, key)
+            # make our assertions
+            self.assertEqual(vm_states.ACTIVE, instance.vm_state)
+            self.assertIsNone(instance.task_state)
+
+            power_state_mock.assert_called_once_with(self.context, instance)
+            instance_save_mock.assert_called_once_with(
+                expected_task_state=task_states.UPDATING_KEYPAIR)
+
+        do_test()
+
+    @mock.patch('nova.compute.manager.ComputeManager._get_power_state',
+                return_value=power_state.NOSTATE)
+    @mock.patch('nova.compute.manager.ComputeManager._instance_update')
+    @mock.patch.object(objects.Instance, 'save')
+    @mock.patch.object(compute_utils, 'add_instance_fault_from_exc')
+    def test_set_keypair_bad_state(self, add_fault_mock,
+                                   instance_save_mock,
+                                   update_mock,
+                                   power_state_mock):
+        # Test setting keypair while instance is rebuilding.
+        instance = fake_instance.fake_instance_obj(self.context)
+        key = fake_keypair.fake_keypair_obj(self.context,
+                                            instance=instance)
+        with mock.patch.object(self.context, 'elevated',
+                               return_value=self.context):
+            # call the manager method
+            self.assertRaises(exception.InstanceAdminKeypairSetFailed,
+                              self.compute.set_keypair,
+                              self.context, instance, key)
+
+        # make our assertions
+        power_state_mock.assert_called_once_with(self.context, instance)
+        instance_save_mock.assert_called_once_with(
+            expected_task_state=task_states.UPDATING_KEYPAIR)
+        add_fault_mock.assert_called_once_with(
+            self.context, instance, mock.ANY, mock.ANY)
+
+    @mock.patch('nova.compute.manager.ComputeManager._get_power_state',
+                return_value=power_state.RUNNING)
+    @mock.patch('nova.compute.manager.ComputeManager._instance_update')
+    @mock.patch.object(objects.Instance, 'save')
+    @mock.patch.object(compute_utils, 'add_instance_fault_from_exc')
+    def _do_test_set_keypair_driver_error(self, exc,
+                                          expected_vm_state,
+                                          expected_task_state,
+                                          expected_exception,
+                                          add_fault_mock,
+                                          instance_save_mock,
+                                          update_mock,
+                                          power_state_mock):
+        # Ensure expected exception is raised if set_keypair fails.
+        instance = fake_instance.fake_instance_obj(
+            self.context,
+            vm_state=vm_states.ACTIVE,
+            task_state=task_states.UPDATING_KEYPAIR)
+        key = fake_keypair.fake_keypair_obj(self.context,
+                                            instance=instance)
+
+        @mock.patch.object(self.context, 'elevated', return_value=self.context)
+        @mock.patch.object(self.compute.driver, 'set_keypair',
+                           side_effect=exc)
+        def do_test(driver_mock, elevated_mock):
+            # error raised from the driver should not reveal internal
+            # information so a new error is raised
+            self.assertRaises(expected_exception,
+                              self.compute.set_keypair,
+                              self.context,
+                              instance=instance,
+                              key=key)
+
+            if expected_exception == NotImplementedError:
+                instance_save_mock.assert_called_once_with(
+                    expected_task_state=task_states.UPDATING_KEYPAIR)
+            else:
+                # setting the instance to error state
+                instance_save_mock.assert_called_once_with()
+
+            self.assertEqual(expected_vm_state, instance.vm_state)
+            # check revert_task_state decorator
+            update_mock.assert_called_once_with(
+                self.context, instance, task_state=expected_task_state)
+            # check wrap_instance_fault decorator
+            add_fault_mock.assert_called_once_with(
+                self.context, instance, mock.ANY, mock.ANY)
+
+        do_test()
+
+    def test_set_keypair_driver_not_authorized(self):
+        # Ensure expected exception is raised if set_keypair not
+        # authorized.
+        exc = exception.Forbidden('Internal error')
+        expected_exception = exception.InstanceAdminKeypairSetFailed
+        self._do_test_set_keypair_driver_error(
+            exc, vm_states.ERROR, None, expected_exception)
+
+    def test_set_keypair_driver_not_implemented(self):
+        # Ensure expected exception is raised if set_keypair not
+        # implemented by driver.
+        exc = NotImplementedError()
+        expected_exception = NotImplementedError
+        self._do_test_set_keypair_driver_error(
             exc, vm_states.ACTIVE, None, expected_exception)
 
     def test_destroy_evacuated_instances(self):

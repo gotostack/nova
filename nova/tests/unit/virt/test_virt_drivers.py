@@ -333,6 +333,11 @@ class _VirtDriverTestCase(_FakeDriverBackendTestCase):
         self.connection.set_admin_password(instance, 'p4ssw0rd')
 
     @catch_notimplementederror
+    def test_set_keypair(self):
+        instance, network_info = self._get_running_instance(obj=True)
+        self.connection.set_keypair(instance, mock.Mock())
+
+    @catch_notimplementederror
     def test_inject_file(self):
         instance_ref, network_info = self._get_running_instance()
         self.connection.inject_file(instance_ref,
@@ -972,3 +977,12 @@ class LibvirtConnTestCase(_VirtDriverTestCase, test.TestCase):
             "hw_qemu_guest_agent": "yes"}}
         instance, network_info = self._get_running_instance(obj=True)
         self.connection.set_admin_password(instance, 'p4ssw0rd')
+
+    @catch_notimplementederror
+    @mock.patch('nova.utils.get_image_from_system_metadata')
+    def test_set_keypair(self, mock_image):
+        self.flags(virt_type='kvm', group='libvirt')
+        mock_image.return_value = {"properties": {
+            "hw_qemu_guest_agent": "yes"}}
+        instance, network_info = self._get_running_instance(obj=True)
+        self.connection.set_keypair(instance, mock.Mock())

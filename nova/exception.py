@@ -1489,6 +1489,12 @@ class InstancePasswordSetFailed(NovaException):
     safe = True
 
 
+class InstanceAdminKeypairSetFailed(NovaException):
+    msg_fmt = _("Failed to set key pair on %(instance)s "
+                "because %(reason)s")
+    safe = True
+
+
 class InstanceNotFound(NotFound):
     ec2_code = 'InvalidInstanceID.NotFound'
     msg_fmt = _("Instance %(instance_id)s could not be found.")

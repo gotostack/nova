@@ -328,6 +328,7 @@ class ComputeAPI(object):
         * 4.9  - Add live_migration_force_complete()
         * 4.10  - Add live_migration_abort()
         * 4.11 - Allow block_migration and disk_over_commit be None
+        * 4.12 - Add set_keypair()
     '''
 
     VERSION_ALIASES = {
@@ -857,6 +858,12 @@ class ComputeAPI(object):
                 version=version)
         return cctxt.call(ctxt, 'set_admin_password',
                           instance=instance, new_pass=new_pass)
+
+    def set_keypair(self, ctxt, instance, key):
+        version = '4.12'
+        cctxt = self.client.prepare(server=_compute_host(None, instance),
+                version=version)
+        return cctxt.call(ctxt, 'set_keypair', instance=instance, key=key)
 
     def set_host_enabled(self, ctxt, enabled, host):
         version = '4.0'

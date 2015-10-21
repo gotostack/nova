@@ -1252,6 +1252,7 @@ class CellsTargetedMethodsTestCase(test.NoDBTestCase):
                                'reset_network': 'reset_network',
                                'inject_network_info': 'inject_network_info',
                                'set_admin_password': 'set_admin_password',
+                               'set_keypair': 'set_keypair',
                               }
         tgt_method = method_translations.get(method,
                                              '%s_instance' % method)
@@ -1418,6 +1419,11 @@ class CellsTargetedMethodsTestCase(test.NoDBTestCase):
     def test_set_admin_password(self):
         args = ['fake-password']
         self._test_instance_action_method('set_admin_password', args, {}, args,
+                {}, False)
+
+    def test_set_keypair(self):
+        args = ['fake-key']
+        self._test_instance_action_method('set_keypair', args, {}, args,
                 {}, False)
 
 

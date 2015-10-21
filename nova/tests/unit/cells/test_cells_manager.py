@@ -880,6 +880,14 @@ class CellsManagerClassTestCase(test.NoDBTestCase):
             set_admin_password.assert_called_once_with(self.ctxt,
                     'fake-instance', 'fake-password')
 
+    def test_set_keypair(self):
+        with mock.patch.object(self.msg_runner,
+                               'set_keypair') as set_keypair:
+            self.cells_manager.set_keypair(self.ctxt,
+                    instance='fake-instance', key='fake-key')
+            set_keypair.assert_called_once_with(self.ctxt,
+                    'fake-instance', 'fake-key')
+
     def test_get_keypair_at_top(self):
         keypairs = [self._get_fake_response('fake_keypair'),
                     self._get_fake_response('fake_keypair2')]

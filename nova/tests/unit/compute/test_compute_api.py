@@ -158,6 +158,17 @@ class _ComputeAPIUnitTestMixIn(object):
         instance.obj_reset_changes()
         return instance
 
+    def _create_keypair_obj(self, instance):
+        """Create a test keypair."""
+        keypair = objects.KeyPair()
+        keypair.id = 1
+        keypair.name = 'fake_key'
+        keypair.user_id = instance.user_id
+        keypair.fingerprint = 'fake'
+        keypair.public_key = 'fake key'
+        keypair.type = 'ssh'
+        return keypair
+
     def _obj_to_list_obj(self, list_obj, obj):
         list_obj.objects = []
         list_obj.objects.append(obj)
@@ -3230,6 +3241,36 @@ class _ComputeAPIUnitTestMixIn(object):
                 self.context, instance, instance_actions.CHANGE_PASSWORD)
             compute_rpcapi_mock.assert_called_once_with(
                 self.context, instance=instance, new_pass=None)
+
+        do_test()
+
+    def test_set_keypair_invalid_state(self):
+        # Tests that InstanceInvalidState is raised when not ACTIVE.
+        instance = self._create_instance_obj({'vm_state': vm_states.STOPPED})
+        key = self._create_keypair_obj(instance)
+        self.assertRaises(exception.InstanceInvalidState,
+                          self.compute_api.set_keypair,
+                          self.context, instance, key)
+
+    def test_set_keypair(self):
+        # Ensure instance can have its admin keypair set.
+        instance = self._create_instance_obj()
+        key = self._create_keypair_obj(instance)
+
+        @mock.patch.object(objects.Instance, 'save')
+        @mock.patch.object(self.compute_api, '_record_action_start')
+        @mock.patch.object(self.compute_api.compute_rpcapi,
+                           'set_keypair')
+        def do_test(compute_rpcapi_mock, record_mock, instance_save_mock):
+            # call the API
+            self.compute_api.set_keypair(self.context, instance, key)
+            # make our assertions
+            instance_save_mock.assert_called_once_with(
+                expected_task_state=[None])
+            record_mock.assert_called_once_with(
+                self.context, instance, instance_actions.CHANGE_KEYPAIR)
+            compute_rpcapi_mock.assert_called_once_with(
+                self.context, instance=instance, key=key)
 
         do_test()
 

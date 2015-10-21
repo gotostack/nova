@@ -802,6 +802,17 @@ class CellsAPITestCase(test.NoDBTestCase):
         self._check_result(call_info, 'set_admin_password',
                 expected_args, version='1.29')
 
+    def test_set_keypair(self):
+        call_info = self._stub_rpc_method('cast', None)
+
+        self.cells_rpcapi.set_keypair(self.fake_context,
+                'fake-instance', 'fake-key')
+
+        expected_args = {'instance': 'fake-instance',
+                         'key': 'fake-key'}
+        self._check_result(call_info, 'set_keypair',
+                           expected_args, version='1.38')
+
     def test_get_keypair_at_top(self):
         call_info = self._stub_rpc_method('call', 'fake_response')
         result = self.cells_rpcapi.get_keypair_at_top(self.fake_context,

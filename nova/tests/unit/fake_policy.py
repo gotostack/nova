@@ -62,6 +62,7 @@ policy_data = """
     "compute:detach_interface": "",
 
     "compute:set_admin_password": "",
+    "compute:set_keypair": "",
 
     "compute:rescue": "",
     "compute:unrescue": "",
@@ -147,6 +148,7 @@ policy_data = """
     "os_compute_api:os-admin-actions:inject_network_info": "",
     "os_compute_api:os-admin-actions:reset_state": "",
     "os_compute_api:os-admin-password": "",
+    "os_compute_api:os-admin-keypair": "",
     "compute_extension:aggregates": "rule:admin_api",
     "os_compute_api:os-aggregates:index": "rule:admin_api",
     "os_compute_api:os-aggregates:create": "rule:admin_api",
