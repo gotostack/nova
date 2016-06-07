@@ -140,6 +140,32 @@ class AdminKeypairTestV21(test.NoDBTestCase):
                           self._get_action(),
                           self.fake_req, 'fake', body=body)
 
+    @mock.patch('nova.compute.api.API.set_keypair',
+                side_effect=exception.VirtTypeNotSupported(instance="1",
+                                                           reason=''))
+    @mock.patch('nova.compute.api.KeypairAPI.get_key_pair',
+                return_value=mock.Mock())
+    def test_change_keypair_virt_type_not_supported(self,
+                                                    mock_set_admin_keypair,
+                                                    mock_get_key_pair):
+        body = {'changeKeypair': {'keypairName': 'test'}}
+        self.assertRaises(webob.exc.HTTPConflict,
+                          self._get_action(),
+                          self.fake_req, 'fake', body=body)
+
+    @mock.patch('nova.compute.api.API.set_keypair',
+                side_effect=exception.Invalid(instance="1",
+                                              reason=''))
+    @mock.patch('nova.compute.api.KeypairAPI.get_key_pair',
+                return_value=mock.Mock())
+    def test_change_keypair_guest_agent_no_enabled(self,
+                                                   mock_set_admin_keypair,
+                                                   mock_get_key_pair):
+        body = {'changeKeypair': {'keypairName': 'test'}}
+        self.assertRaises(webob.exc.HTTPConflict,
+                          self._get_action(),
+                          self.fake_req, 'fake', body=body)
+
 
 class AdminKeypairTestV2(AdminKeypairTestV21):
     validiation_error = webob.exc.HTTPBadRequest

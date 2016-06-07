@@ -979,8 +979,10 @@ class LibvirtConnTestCase(_VirtDriverTestCase, test.TestCase):
         self.connection.set_admin_password(instance, 'p4ssw0rd')
 
     @catch_notimplementederror
+    @mock.patch.object(libvirt.guest_agent_actions, 'reset_keypair')
+    @mock.patch.object(libvirt.guest_agent_actions, 'libvirt_qemu')
     @mock.patch('nova.utils.get_image_from_system_metadata')
-    def test_set_keypair(self, mock_image):
+    def test_set_keypair(self, mock_image, libvirt_qemu, reset_keypair):
         self.flags(virt_type='kvm', group='libvirt')
         mock_image.return_value = {"properties": {
             "hw_qemu_guest_agent": "yes"}}

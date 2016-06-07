@@ -2516,7 +2516,10 @@ class ComputeManagerUnitTestCase(test.NoDBTestCase):
                               instance=instance,
                               new_pass=None)
 
-            if expected_exception == NotImplementedError:
+            if (expected_exception == exception.SetAdminPasswdNotSupported or
+                    expected_exception == exception.VirtTypeNotSupported or
+                    expected_exception == exception.Invalid or
+                    expected_exception == NotImplementedError):
                 instance_save_mock.assert_called_once_with(
                     expected_task_state=task_states.UPDATING_PASSWORD)
             else:
@@ -2546,6 +2549,24 @@ class ComputeManagerUnitTestCase(test.NoDBTestCase):
         # implemented by driver.
         exc = NotImplementedError()
         expected_exception = NotImplementedError
+        self._do_test_set_admin_password_driver_error(
+            exc, vm_states.ACTIVE, None, expected_exception)
+
+    def test_set_admin_password_driver_not_supported(self):
+        exc = exception.SetAdminPasswdNotSupported()
+        expected_exception = exception.SetAdminPasswdNotSupported
+        self._do_test_set_admin_password_driver_error(
+            exc, vm_states.ACTIVE, None, expected_exception)
+
+    def test_set_admin_password_driver_virt_type_not_supported(self):
+        exc = exception.VirtTypeNotSupported()
+        expected_exception = exception.VirtTypeNotSupported
+        self._do_test_set_admin_password_driver_error(
+            exc, vm_states.ACTIVE, None, expected_exception)
+
+    def test_set_admin_password_guest_agent_no_enabled(self):
+        exc = exception.QemuGuestAgentNotEnabled()
+        expected_exception = exception.Invalid
         self._do_test_set_admin_password_driver_error(
             exc, vm_states.ACTIVE, None, expected_exception)
 
@@ -2636,7 +2657,9 @@ class ComputeManagerUnitTestCase(test.NoDBTestCase):
                               instance=instance,
                               key=key)
 
-            if expected_exception == NotImplementedError:
+            if (expected_exception == exception.VirtTypeNotSupported or
+                    expected_exception == exception.Invalid or
+                    expected_exception == NotImplementedError):
                 instance_save_mock.assert_called_once_with(
                     expected_task_state=task_states.UPDATING_KEYPAIR)
             else:
@@ -2666,6 +2689,18 @@ class ComputeManagerUnitTestCase(test.NoDBTestCase):
         # implemented by driver.
         exc = NotImplementedError()
         expected_exception = NotImplementedError
+        self._do_test_set_keypair_driver_error(
+            exc, vm_states.ACTIVE, None, expected_exception)
+
+    def test_set_keypair_driver_virt_type_not_supported(self):
+        exc = exception.VirtTypeNotSupported()
+        expected_exception = exception.VirtTypeNotSupported
+        self._do_test_set_keypair_driver_error(
+            exc, vm_states.ACTIVE, None, expected_exception)
+
+    def test_set_keypair_guest_agent_no_enabled(self):
+        exc = exception.QemuGuestAgentNotEnabled()
+        expected_exception = exception.Invalid
         self._do_test_set_keypair_driver_error(
             exc, vm_states.ACTIVE, None, expected_exception)
 

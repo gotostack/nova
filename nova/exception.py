@@ -2010,6 +2010,10 @@ class SetAdminPasswdNotSupported(Invalid):
     msg_fmt = _('Set admin password is not supported')
 
 
+class VirtTypeNotSupported(Invalid):
+    msg_fmt = _("The virt type does not support the request action")
+
+
 class MemoryPageSizeInvalid(Invalid):
     msg_fmt = _("Invalid memory page size '%(pagesize)s'")
 

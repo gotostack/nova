@@ -98,6 +98,7 @@ from nova.virt.libvirt import blockinfo
 from nova.virt.libvirt import config as vconfig
 from nova.virt.libvirt import firewall as libvirt_firewall
 from nova.virt.libvirt import guest as libvirt_guest
+from nova.virt.libvirt import guest_agent_actions
 from nova.virt.libvirt import host
 from nova.virt.libvirt import imagebackend
 from nova.virt.libvirt import imagecache
@@ -1776,14 +1777,21 @@ class LibvirtDriver(driver.ComputeDriver):
                     guest, pci_manager.get_instance_pci_devs(instance))
                 self._attach_sriov_ports(context, instance, guest)
 
-    def _can_set_admin_password(self, image_meta):
-        if (CONF.libvirt.virt_type not in ('kvm', 'qemu') or
-            not self._host.has_min_version(MIN_LIBVIRT_SET_ADMIN_PASSWD)):
-            raise exception.SetAdminPasswdNotSupported()
+    def _is_virt_type_supported(self):
+        if CONF.libvirt.virt_type not in ('kvm', 'qemu'):
+            raise exception.VirtTypeNotSupported()
 
+    def _is_qemu_guest_agent_enabled(self, image_meta):
         hw_qga = image_meta.properties.get('hw_qemu_guest_agent', '')
         if not strutils.bool_from_string(hw_qga):
             raise exception.QemuGuestAgentNotEnabled()
+
+    def _can_set_admin_password(self, image_meta):
+        self._is_virt_type_supported()
+        if not self._host.has_min_version(MIN_LIBVIRT_SET_ADMIN_PASSWD):
+            raise exception.SetAdminPasswdNotSupported()
+
+        self._is_qemu_guest_agent_enabled(image_meta)
 
     def set_admin_password(self, instance, new_pass):
         self._can_set_admin_password(instance.image_meta)
@@ -1802,6 +1810,20 @@ class LibvirtDriver(driver.ComputeDriver):
             msg = (_('Error from libvirt while set password for username '
                      '"%(user)s": [Error Code %(error_code)s] %(ex)s')
                    % {'user': user, 'error_code': error_code, 'ex': ex})
+            raise exception.NovaException(msg)
+
+    def _can_set_admin_keypair(self, image_meta):
+        self._is_virt_type_supported()
+        self._is_qemu_guest_agent_enabled(image_meta)
+
+    def set_keypair(self, instance, key):
+        self._can_set_admin_keypair(instance.image_meta)
+        guest = self._host.get_guest(instance)
+        try:
+            guest_agent_actions.reset_keypair(
+                guest._domain, key.public_key)
+        except Exception as ex:
+            msg = _('Error from running QEMU guest agnet command: %s') % ex
             raise exception.NovaException(msg)
 
     def _can_quiesce(self, instance, image_meta):

@@ -70,6 +70,7 @@ from nova.pci import utils as pci_utils
 from nova import test
 from nova.tests.unit import fake_block_device
 from nova.tests.unit import fake_instance
+from nova.tests.unit import fake_keypair
 from nova.tests.unit import fake_network
 import nova.tests.unit.image.fake
 from nova.tests.unit import matchers
@@ -94,6 +95,7 @@ from nova.virt.libvirt import config as vconfig
 from nova.virt.libvirt import driver as libvirt_driver
 from nova.virt.libvirt import firewall
 from nova.virt.libvirt import guest as libvirt_guest
+from nova.virt.libvirt import guest_agent_actions as ag_actions
 from nova.virt.libvirt import host
 from nova.virt.libvirt import imagebackend
 from nova.virt.libvirt.storage import dmcrypt
@@ -1197,7 +1199,7 @@ class LibvirtConnTestCase(test.NoDBTestCase):
         mock_image.return_value = {"properties": {
             "hw_qemu_guest_agent": "yes"}}
         drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
-        self.assertRaises(exception.SetAdminPasswdNotSupported,
+        self.assertRaises(exception.VirtTypeNotSupported,
                           drvr.set_admin_password, instance, "123")
 
     @mock.patch.object(host.Host,
@@ -1226,6 +1228,69 @@ class LibvirtConnTestCase(test.NoDBTestCase):
         drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
         self.assertRaises(exception.NovaException,
                           drvr.set_admin_password, instance, "123")
+
+    @mock.patch.object(ag_actions, 'libvirt_qemu')
+    @mock.patch.object(ag_actions, 'reset_keypair')
+    @mock.patch('nova.utils.get_image_from_system_metadata')
+    @mock.patch('nova.virt.libvirt.host.Host.get_guest')
+    def test_set_keypair(self,
+                         mock_get_guest,
+                         mock_image,
+                         mock_reset_keypair,
+                         mock_libvirt_qemu):
+        self.flags(virt_type='kvm', group='libvirt')
+        instance = objects.Instance(**self.test_instance)
+        key = fake_keypair.fake_keypair_obj(None, instance=instance)
+        mock_image.return_value = {"properties": {
+            "hw_qemu_guest_agent": "yes"}}
+        mock_guest = mock.Mock(spec=libvirt_guest.Guest)
+        mock_guest._domain = mock.MagicMock()
+        mock_get_guest.return_value = mock_guest
+        mock_reset_keypair.reset_keypair.return_value = True
+        drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
+        drvr.set_keypair(instance, key)
+
+        mock_reset_keypair.assert_called_once_with(mock.ANY, key.public_key)
+
+    @mock.patch('nova.utils.get_image_from_system_metadata')
+    def test_set_keypair_bad_hyp(self, mock_image):
+        self.flags(virt_type='foo', group='libvirt')
+        instance = objects.Instance(**self.test_instance)
+        key = fake_keypair.fake_keypair_obj(None, instance=instance)
+        mock_image.return_value = {"properties": {
+            "hw_qemu_guest_agent": "yes"}}
+        drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
+        self.assertRaises(exception.VirtTypeNotSupported,
+                          drvr.set_keypair, instance, key)
+
+    def test_set_keypair_guest_agent_not_running(self):
+        self.flags(virt_type='kvm', group='libvirt')
+        instance = objects.Instance(**self.test_instance)
+        key = fake_keypair.fake_keypair_obj(None, instance=instance)
+        drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
+        self.assertRaises(exception.QemuGuestAgentNotEnabled,
+                          drvr.set_keypair, instance, key)
+
+    @mock.patch.object(ag_actions, 'reset_keypair')
+    @mock.patch('nova.utils.get_image_from_system_metadata')
+    @mock.patch('nova.virt.libvirt.host.Host.get_guest')
+    def test_set_keypair_error(self,
+                               mock_get_guest,
+                               mock_image,
+                               mock_reset_keypair):
+        self.flags(virt_type='kvm', group='libvirt')
+        instance = objects.Instance(**self.test_instance)
+        key = fake_keypair.fake_keypair_obj(None, instance=instance)
+        mock_image.return_value = {"properties": {
+            "hw_qemu_guest_agent": "yes"}}
+        mock_guest = mock.Mock(spec=libvirt_guest.Guest)
+        mock_reset_keypair.reset_keypair.side_effect = (
+            exception.NovaException("QEMU guest agent commands run failed"))
+        mock_get_guest.return_value = mock_guest
+
+        drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
+        self.assertRaises(exception.NovaException,
+                          drvr.set_keypair, instance, key)
 
     @mock.patch.object(objects.Service, 'get_by_compute_host')
     def test_set_host_enabled_with_disable(self, mock_svc):

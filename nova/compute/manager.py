@@ -3303,6 +3303,13 @@ class ComputeManager(manager.Manager):
             instance.task_state = None
             instance.save(
                 expected_task_state=task_states.UPDATING_PASSWORD)
+        except (exception.VirtTypeNotSupported,
+                exception.SetAdminPasswdNotSupported,
+                exception.Invalid):
+            with excutils.save_and_reraise_exception():
+                instance.task_state = None
+                instance.save(
+                    expected_task_state=task_states.UPDATING_PASSWORD)
         except NotImplementedError:
             LOG.warning(_LW('set_admin_password is not implemented '
                             'by this driver or guest instance.'),
@@ -3362,6 +3369,12 @@ class ComputeManager(manager.Manager):
             instance.task_state = None
             instance.save(
                 expected_task_state=task_states.UPDATING_KEYPAIR)
+        except (exception.VirtTypeNotSupported,
+                exception.Invalid):
+            with excutils.save_and_reraise_exception():
+                instance.task_state = None
+                instance.save(
+                    expected_task_state=task_states.UPDATING_KEYPAIR)
         except NotImplementedError:
             LOG.warning(_LW('set_keypair is not implemented '
                             'by this driver or guest instance.'),

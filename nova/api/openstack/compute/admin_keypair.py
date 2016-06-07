@@ -52,7 +52,9 @@ class AdminKeypairController(wsgi.Controller):
             self.compute_api.set_keypair(context, instance, keypair)
         except exception.InstanceUnknownCell as e:
             raise exc.HTTPNotFound(explanation=e.format_message())
-        except exception.InstanceAdminKeypairSetFailed as e:
+        except (exception.InstanceAdminKeypairSetFailed,
+                exception.VirtTypeNotSupported,
+                exception.Invalid) as e:
             raise exc.HTTPConflict(explanation=e.format_message())
         except exception.InstanceInvalidState as e:
             raise common.raise_http_conflict_for_instance_invalid_state(
