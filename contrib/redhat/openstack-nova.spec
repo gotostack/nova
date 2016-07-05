@@ -8,7 +8,7 @@ Name:             openstack-nova
 # https://review.openstack.org/#/q/I6a35fa0dda798fad93b804d00a46af80f08d475c,n,z
 Epoch:            1
 Version:          13.1.0
-Release:          1%{?dist}
+Release:          10%{?dist}
 Summary:          OpenStack Compute (nova)
 
 License:          ASL 2.0
@@ -818,6 +818,10 @@ exit 0
 %endif
 
 %changelog
+* Tue Jul 05 2016 LIU Yulong <liuyulong@le.com> 1:13.1.0-10
+- Use qemu guest agent to reset root login keypair
+- Add API for set instance keypair
+
 * Fri Jun 17 2016 Haikel Guemar <hguemar@fedoraproject.org> 1:13.1.0-1
 - Update to 13.1.0
 
