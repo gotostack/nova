@@ -427,7 +427,7 @@ MIN_LIBVIRT_BLOCKJOB_RELATIVE_VERSION = (1, 2, 7)
 MIN_LIBVIRT_BLOCK_LM_WITH_VOLUMES_VERSION = (1, 2, 17)
 # libvirt discard feature
 MIN_LIBVIRT_DISCARD_VERSION = (1, 0, 6)
-MIN_QEMU_DISCARD_VERSION = (1, 6, 0)
+MIN_QEMU_DISCARD_VERSION = (1, 5, 0)
 # While earlier versions could support NUMA reporting and
 # NUMA placement, not until 1.2.7 was there the ability
 # to pin guest nodes to host nodes, so mandate that. Without
