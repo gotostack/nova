@@ -818,6 +818,9 @@ exit 0
 %endif
 
 %changelog
+* Fri Jul 15 2016 Yue Longguang <yuelongguang@le.com> 1:13.1.0-10
+- actually qemu-kvm-1.5.3 has supported discard feature, so enable it
+
 * Tue Jul 05 2016 LIU Yulong <liuyulong@le.com> 1:13.1.0-10
 - Use qemu guest agent to reset root login keypair
 - Add API for set instance keypair
