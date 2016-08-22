@@ -818,6 +818,9 @@ exit 0
 %endif
 
 %changelog
+* Mon Aug 22 2016 Gao Zhengwei <gaozhengwei1@le.com> 1:13.1.0-10
+- Modify format of ineterface template for config drive
+
 * Fri Jul 15 2016 Yue Longguang <yuelongguang@le.com> 1:13.1.0-10
 - actually qemu-kvm-1.5.3 has supported discard feature, so enable it
 
