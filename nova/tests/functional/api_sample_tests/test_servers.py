@@ -16,6 +16,7 @@
 from oslo_config import cfg
 
 from nova.tests.functional.api_sample_tests import api_sample_base
+from nova.tests.unit.api.openstack import fakes
 from nova.tests.unit.image import fake
 
 CONF = cfg.CONF
@@ -220,11 +221,13 @@ class ServersActionsJsonTest(ServersSampleBase):
                                  {"type": "SOFT"})
 
     def test_server_rebuild(self):
+        fakes.stub_out_key_pair_funcs(self.stubs, have_key_pair=True)
         uuid = self._post_server()
         image = fake.get_valid_image_id()
         params = {
             'uuid': image,
             'name': 'foobar',
+            'key_name': 'key',
             'pass': 'seekr3t',
             'hostid': '[a-f0-9]+',
             'access_ip_v4': '1.2.3.4',
@@ -270,11 +273,13 @@ class ServersActionsJson219Test(ServersSampleBase):
     scenarios = [('v2_19', {'api_major_version': 'v2.1'})]
 
     def test_server_rebuild(self):
+        fakes.stub_out_key_pair_funcs(self.stubs, have_key_pair=True)
         uuid = self._post_server()
         image = fake.get_valid_image_id()
         params = {
             'uuid': image,
             'name': 'foobar',
+            'key_name': 'key',
             'description': 'description of foobar',
             'pass': 'seekr3t',
             'hostid': '[a-f0-9]+',

@@ -454,6 +454,73 @@ class ServerActionsControllerTestV21(test.TestCase):
                           self.controller._action_rebuild, self.req,
                           FAKE_UUID, body=body)
 
+    def test_rebuild_accepted_with_keypair_name(self):
+        key_name = "key"
+        fakes.stub_out_key_pair_funcs(self.stubs, have_key_pair=True)
+        return_server = fakes.fake_instance_get(key_name=key_name,
+                vm_state=vm_states.ACTIVE, host='fake_host')
+        self.stub_out('nova.db.instance_get_by_uuid', return_server)
+
+        body = {
+            "rebuild": {
+                "imageRef": self._image_href,
+                "key_name": key_name,
+            },
+        }
+
+        body = self.controller._action_rebuild(self.req, FAKE_UUID,
+                                               body=body).obj
+
+        self.assertEqual(body['server']['key_name'], key_name)
+
+    def test_rebuild_accepted_with_keypair_name_not_existed(self):
+        body = {
+            "rebuild": {
+                "imageRef": self._image_href,
+                "key_name": "key_not_existed",
+            },
+        }
+
+        self.assertRaises(webob.exc.HTTPNotFound,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_accepted_with_non_string_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self._image_href,
+                "key_name": 12345,
+            },
+        }
+
+        self.assertRaises(self.validation_error,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_accepted_with_bad_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self._image_href,
+                "key_name": "",
+            },
+        }
+
+        self.assertRaises(self.validation_error,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_too_large_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self._image_href,
+                "key_name": 256 * "k",
+            }
+        }
+
+        self.assertRaises(self.request_too_large_error,
+                          self.controller._action_rebuild, self.req,
+                          FAKE_UUID, body=body)
+
     def test_rebuild_bad_entity(self):
         body = {
             "rebuild": {
@@ -1270,6 +1337,18 @@ class ServerActionsControllerTestV2(ServerActionsControllerTestV21):
                                                body=body).obj
 
         self.assertNotIn('personality', body['server'])
+
+    def test_rebuild_with_too_large_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self._image_href,
+                "key_name": 256 * "k",
+            }
+        }
+
+        self.assertRaises(webob.exc.HTTPBadRequest,
+                          self.controller._action_rebuild, self.req,
+                          FAKE_UUID, body=body)
 
     def test_resize_server_with_extra_arg(self):
         # NOTE: v2.0 API cannot cover this case, skip this.

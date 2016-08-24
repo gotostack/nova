@@ -46,6 +46,7 @@
             "meta_var": "meta_val"
         },
         "name": "%(name)s",
+        "key_name": "%(key_name)s",
         "progress": 0,
         "status": "ACTIVE",
         "tenant_id": "6f70656e737461636b20342065766572",

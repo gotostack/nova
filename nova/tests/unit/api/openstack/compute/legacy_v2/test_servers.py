@@ -1753,6 +1753,45 @@ class ServersControllerRebuildInstanceTest(ControllerTest):
                 self.controller._action_rebuild, self.req, FAKE_UUID,
                 self.body)
 
+    def test_rebuild_with_not_existed_keypair_name(self):
+        self.body['rebuild']['key_name'] = 'nonexistentkey'
+        self.body['rebuild']['imageRef'] = 'fake'
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        self.assertRaises(
+            webob.exc.HTTPBadRequest,
+            self.controller._action_rebuild, self.req, FAKE_UUID,
+            self.body)
+
+    def test_rebuild_with_non_string_keypair_name(self):
+        self.body['rebuild']['key_name'] = 12345
+        self.body['rebuild']['imageRef'] = 'fake'
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        self.assertRaises(
+            webob.exc.HTTPBadRequest,
+            self.controller._action_rebuild, self.req, FAKE_UUID,
+            self.body)
+
+    def test_rebuild_with_empty_keypair_name(self):
+        self.body['rebuild']['key_name'] = ''
+        self.body['rebuild']['imageRef'] = 'fake'
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        self.assertRaises(
+            webob.exc.HTTPBadRequest,
+            self.controller._action_rebuild, self.req, FAKE_UUID,
+            self.body)
+
+    def test_rebuild_with_too_large_keypair_name(self):
+        self.body['rebuild']['key_name'] = 256 * "k"
+        self.body['rebuild']['imageRef'] = 'fake'
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        self.assertRaises(
+            webob.exc.HTTPBadRequest,
+            self.controller._action_rebuild, self.req, FAKE_UUID,
+            self.body)
+
 
 class ServerStatusTest(test.TestCase):
 

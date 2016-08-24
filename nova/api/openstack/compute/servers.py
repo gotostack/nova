@@ -155,6 +155,7 @@ class ServersController(wsgi.Controller):
         self.extension_info = kwargs.pop('extension_info')
         super(ServersController, self).__init__(**kwargs)
         self.compute_api = compute.API(skip_policy_check=True)
+        self.keypair_api = compute.api.KeypairAPI()
 
         # Look for implementation of extension point of server creation
         self.create_extension_manager = \
@@ -1015,6 +1016,7 @@ class ServersController(wsgi.Controller):
             'name': 'display_name',
             'description': 'display_description',
             'metadata': 'metadata',
+            'key_name': 'key',
         }
 
         rebuild_kwargs = {}
@@ -1028,6 +1030,10 @@ class ServersController(wsgi.Controller):
                 if request_attribute == 'name':
                     rebuild_kwargs[instance_attribute] = common.normalize_name(
                         rebuild_dict[request_attribute])
+                elif request_attribute == 'key_name':
+                    key_name = rebuild_dict[request_attribute]
+                    rebuild_kwargs[instance_attribute] = common.get_key_pair(
+                        self.keypair_api, context, key_name)
                 else:
                     rebuild_kwargs[instance_attribute] = rebuild_dict[
                         request_attribute]
@@ -1070,6 +1076,10 @@ class ServersController(wsgi.Controller):
         # unless instance passwords are disabled
         if CONF.enable_instance_password:
             view['server']['adminPass'] = password
+
+        key_name = rebuild_dict.get('key_name')
+        if key_name:
+            view['server']['key_name'] = key_name
 
         robj = wsgi.ResponseObject(view)
         return self._add_location(robj)

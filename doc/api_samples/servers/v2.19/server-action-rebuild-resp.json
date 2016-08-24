@@ -47,6 +47,7 @@
             "meta_var": "meta_val"
         },
         "name": "foobar",
+        "key_name": "key",
         "description" : "description of foobar",
         "progress": 0,
         "status": "ACTIVE",

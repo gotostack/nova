@@ -98,6 +98,7 @@ base_rebuild = {
                 'adminPass': parameter_types.admin_password,
                 'metadata': parameter_types.metadata,
                 'preserve_ephemeral': parameter_types.boolean,
+                'key_name': parameter_types.name,
             },
             'required': ['imageRef'],
             'additionalProperties': False,

@@ -1028,6 +1028,7 @@ class Controller(wsgi.Controller):
             'accessIPv6': 'access_ip_v6',
             'metadata': 'metadata',
             'auto_disk_config': 'auto_disk_config',
+            'key_name': 'key'
         }
 
         kwargs = {}
@@ -1055,6 +1056,16 @@ class Controller(wsgi.Controller):
                 pass
 
         self._validate_metadata(kwargs.get('metadata', {}))
+
+        if 'key' in kwargs:
+            key_name = body['key_name']
+            if not isinstance(key_name, six.string_types) or key_name == '':
+                msg = _("keypairName was invalid")
+                raise exc.HTTPBadRequest(explanation=msg)
+            self._check_string_length(
+                key_name, 'Key pair name', max_length=255)
+            keypair = self._get_keypair(context, req, key_name)
+            kwargs['key'] = keypair
 
         if 'files_to_inject' in kwargs:
             personality = kwargs.pop('files_to_inject')
@@ -1100,6 +1111,10 @@ class Controller(wsgi.Controller):
         # unless instance passwords are disabled
         if CONF.enable_instance_password:
             view['server']['adminPass'] = password
+
+        key_name = body.get('key_name')
+        if key_name:
+            view['server']['key_name'] = key_name
 
         robj = wsgi.ResponseObject(view)
         return self._add_location(robj)

@@ -4,6 +4,7 @@
         "accessIPv6" : "80fe::",
         "imageRef" : "70a599e0-31e7-49b7-b260-868f441e862b",
         "name" : "foobar",
+        "key_name": "key",
         "description" : "description of foobar",
         "adminPass" : "seekr3t",
         "metadata" : {

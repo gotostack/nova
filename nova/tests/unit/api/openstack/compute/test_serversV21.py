@@ -1862,6 +1862,50 @@ class ServersControllerRebuildInstanceTest(ControllerTest):
         self.assertRaises(webob.exc.HTTPNotFound,
             self.controller._stop_server, req, 'test_inst', body)
 
+    def test_rebuild_with_not_existed_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_href,
+                "key_name": "nonexistentkey"
+            },
+        }
+        self.assertRaises(webob.exc.HTTPNotFound,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_non_string_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_href,
+                "key_name": 12345
+            },
+        }
+        self.assertRaises(exception.ValidationError,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_empty_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_href,
+                "key_name": ''
+            },
+        }
+        self.assertRaises(exception.ValidationError,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_too_large_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_href,
+                "key_name": 256 * "k"
+            },
+        }
+        self.assertRaises(exception.ValidationError,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
 
 class ServersControllerRebuildTestV219(ServersControllerRebuildInstanceTest):
 

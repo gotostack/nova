@@ -47,6 +47,7 @@
             "meta_var": "meta_val"
         },
         "name": "%(name)s",
+        "key_name": "%(key_name)s",
         "description": "%(description)s",
         "progress": 0,
         "status": "ACTIVE",

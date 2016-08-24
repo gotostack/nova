@@ -24,6 +24,7 @@ from nova import context
 from nova import exception
 from nova.tests.functional.api import client
 from nova.tests.functional import integrated_helpers
+from nova.tests.unit.api.openstack import fakes
 from nova.tests.unit import fake_network
 
 
@@ -340,8 +341,9 @@ class ServersTest(ServersTestBase):
         self._delete_server(created_server_id)
 
     def test_create_and_rebuild_server(self):
-        # Rebuild a server with metadata.
+        # Rebuild a server with metadata and key pair.
         fake_network.set_stub_network_methods(self)
+        fakes.stub_out_key_pair_funcs(self.stubs, have_key_pair=True)
 
         # create a server with initially has no metadata
         server = self._build_minimal_create_server_request()
@@ -368,6 +370,7 @@ class ServersTest(ServersTestBase):
             self._access_ipv4_parameter: "172.19.0.2",
             self._access_ipv6_parameter: "fe80::2",
             "metadata": {'some': 'thing'},
+            "key_name": "key",
         }
         post['rebuild'].update(self._get_access_ips_params())
 
@@ -379,6 +382,7 @@ class ServersTest(ServersTestBase):
         self.assertEqual(created_server_id, found_server['id'])
         self.assertEqual({'some': 'thing'}, found_server.get('metadata'))
         self.assertEqual('blah', found_server.get('name'))
+        self.assertEqual('key', found_server.get('key_name'))
         self.assertEqual(post['rebuild'][self._image_ref_parameter],
                          found_server.get('image')['id'])
         self._verify_access_ips(found_server)
