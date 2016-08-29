@@ -8,7 +8,7 @@ Name:             openstack-nova
 # https://review.openstack.org/#/q/I6a35fa0dda798fad93b804d00a46af80f08d475c,n,z
 Epoch:            1
 Version:          13.1.0
-Release:          10%{?dist}
+Release:          11%{?dist}
 Summary:          OpenStack Compute (nova)
 
 License:          ASL 2.0
@@ -818,6 +818,9 @@ exit 0
 %endif
 
 %changelog
+* Mon Aug 29 2016 LIU Yulong <liuyulong@le.com> 1:13.1.0-11
+- Enable reset keypair while rebuilding instance
+
 * Mon Aug 22 2016 Gao Zhengwei <gaozhengwei1@le.com> 1:13.1.0-10
 - Modify format of ineterface template for config drive
 
