@@ -958,6 +958,7 @@ iface eth0 inet static
     address 192.168.1.100
     netmask 255.255.255.0
     broadcast 192.168.1.255
+    mtu 1500
     gateway 192.168.1.1
     dns-nameservers 192.168.1.3 192.168.1.4
 iface eth0 inet6 static

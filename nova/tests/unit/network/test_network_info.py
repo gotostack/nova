@@ -526,7 +526,8 @@ class NetworkInfoTests(test.NoDBTestCase):
                                         use_ipv4=True, use_ipv6=False,
                                         gateway=True, dns=True,
                                         two_interfaces=False,
-                                        libvirt_virt_type=None):
+                                        libvirt_virt_type=None,
+                                        mtu=False):
         """Check that netutils properly decides whether to inject based on
            whether the supplied subnet is static or dynamic.
         """
@@ -564,6 +565,9 @@ class NetworkInfoTests(test.NoDBTestCase):
             network.add_subnet(fake_network_cache_model.new_subnet(
                 ipv6_subnet_dict))
 
+        if mtu:
+            network['meta']['mtu'] = 1450
+
         # Behave as though CONF.flat_injected is True
         network['meta']['injected'] = True
         vif = fake_network_cache_model.new_vif({'network': network})
@@ -597,6 +601,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     gateway 10.10.0.1
     dns-nameservers 1.2.3.4 2.3.4.5
 """
@@ -620,6 +625,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     dns-nameservers 1.2.3.4 2.3.4.5
 """
         template = self._setup_injected_network_scenario(gateway=False)
@@ -642,6 +648,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     gateway 10.10.0.1
 """
         template = self._setup_injected_network_scenario(dns=False)
@@ -691,6 +698,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     gateway 10.10.0.1
     dns-nameservers 1.2.3.4 2.3.4.5
 iface eth0 inet6 static
@@ -720,6 +728,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     dns-nameservers 1.2.3.4 2.3.4.5
 iface eth0 inet6 static
     hwaddress ether aa:aa:aa:aa:aa:aa
@@ -753,6 +762,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     gateway 10.10.0.1
     dns-nameservers 1.2.3.4 2.3.4.5
 iface eth0 inet6 static
@@ -768,6 +778,7 @@ iface eth1 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     gateway 10.10.0.1
     dns-nameservers 1.2.3.4 2.3.4.5
 iface eth1 inet6 static
@@ -798,6 +809,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     gateway 10.10.0.1
     dns-nameservers 1.2.3.4 2.3.4.5
     post-up ip -6 addr add 1234:567::2/48 dev ${IFACE}
@@ -809,6 +821,7 @@ iface eth1 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     gateway 10.10.0.1
     dns-nameservers 1.2.3.4 2.3.4.5
     post-up ip -6 addr add 1234:567::2/48 dev ${IFACE}
@@ -835,6 +848,7 @@ iface eth0 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     dns-nameservers 1.2.3.4 2.3.4.5
     post-up ip -6 addr add 1234:567::2/48 dev ${IFACE}
 
@@ -844,12 +858,37 @@ iface eth1 inet static
     address 10.10.0.2
     netmask 255.255.255.0
     broadcast 10.10.0.255
+    mtu 1500
     dns-nameservers 1.2.3.4 2.3.4.5
     post-up ip -6 addr add 1234:567::2/48 dev ${IFACE}
 """
         template = self._setup_injected_network_scenario(
                 use_ipv6=True, gateway=False, two_interfaces=True,
                 libvirt_virt_type='lxc')
+        self.assertEqual(expected, template)
+
+    def test_injection_static_with_mtu(self):
+        expected = """\
+# Injected by Nova on instance boot
+#
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    hwaddress ether aa:aa:aa:aa:aa:aa
+    address 10.10.0.2
+    netmask 255.255.255.0
+    broadcast 10.10.0.255
+    mtu 1450
+    gateway 10.10.0.1
+    dns-nameservers 1.2.3.4 2.3.4.5
+"""
+        template = self._setup_injected_network_scenario(mtu=True)
         self.assertEqual(expected, template)
 
 

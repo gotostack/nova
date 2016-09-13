@@ -103,6 +103,7 @@ def get_injected_network_template(network_info, use_ipv6=None, template=None,
         netmask = None
         gateway = ''
         broadcast = None
+        mtu = 1500
         dns = None
         routes = []
         if subnet_v4:
@@ -116,6 +117,7 @@ def get_injected_network_template(network_info, use_ipv6=None, template=None,
                 if subnet_v4['gateway']:
                     gateway = subnet_v4['gateway']['address']
                 broadcast = str(subnet_v4.as_netaddr().broadcast)
+                mtu = network['meta'].get('mtu', 1500)
                 dns = ' '.join([i['address'] for i in subnet_v4['dns']])
                 for route_ref in subnet_v4['routes']:
                     (net, mask) = get_net_and_mask(route_ref['cidr'])
@@ -149,6 +151,7 @@ def get_injected_network_template(network_info, use_ipv6=None, template=None,
                     'netmask': netmask,
                     'gateway': gateway,
                     'broadcast': broadcast,
+                    'mtu': mtu,
                     'dns': dns,
                     'routes': routes,
                     'address_v6': address_v6,
