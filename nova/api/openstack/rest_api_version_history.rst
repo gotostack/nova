@@ -415,3 +415,9 @@ user documentation.
   should not be accepted. From this version of the API admin as well as non
   admin user will get 400 HTTPBadRequest if invalid status is passed to nova
   list command.
+
+2.39
+----
+
+  Allow the user to set the server key pair while rebuilding. And then use the
+  new key to login the server.

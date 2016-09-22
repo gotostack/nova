@@ -1,0 +1,4 @@
+---
+features:
+  - 'key_name' was added to the instance rebuild API, then it's able to reset
+    instance key pair. The REST API is in microversion 2.39 now.

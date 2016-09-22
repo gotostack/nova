@@ -2739,6 +2739,14 @@ class API(base.Base):
         preserve_ephemeral = kwargs.get('preserve_ephemeral', False)
         auto_disk_config = kwargs.get('auto_disk_config')
 
+        if 'key_name' in kwargs:
+            key_name = kwargs.pop('key_name')
+            key_pair = objects.KeyPair.get_by_name(context,
+                                                   context.user_id,
+                                                   key_name)
+            instance.key_name = key_pair.name
+            instance.key_data = key_pair.public_key
+
         image_id, image = self._get_image(context, image_href)
         self._check_auto_disk_config(image=image, **kwargs)
 

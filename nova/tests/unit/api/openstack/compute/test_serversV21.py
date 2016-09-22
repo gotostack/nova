@@ -1623,10 +1623,15 @@ class ServersControllerRebuildInstanceTest(ControllerTest):
         def fake_get(ctrl, ctxt, uuid):
             if uuid == 'test_inst':
                 raise webob.exc.HTTPNotFound(explanation='fakeout')
-            return fakes.stub_instance_obj(None,
-                                           vm_state=vm_states.ACTIVE,
-                                           project_id=self.req_project_id,
-                                           user_id=self.req_user_id)
+            fake_server = fakes.stub_instance_obj(
+                None,
+                vm_state=vm_states.ACTIVE,
+                project_id=self.req_project_id,
+                user_id=self.req_user_id)
+            tag_list = objects.TagList(objects=[
+                objects.Tag(resource_id=FAKE_UUID, tag='a_tag')])
+            setattr(fake_server, "tags", tag_list)
+            return fake_server
 
         self.useFixture(
             fixtures.MonkeyPatch('nova.api.openstack.compute.servers.'
@@ -1923,6 +1928,86 @@ class ServersControllerRebuildInstanceTest(ControllerTest):
         body = dict(stop="")
         self.assertRaises(webob.exc.HTTPNotFound,
             self.controller._stop_server, req, 'test_inst', body)
+
+
+class ServersControllerRebuildTestV239(ServersControllerRebuildInstanceTest):
+
+    def setUp(self):
+        super(ServersControllerRebuildTestV239, self).setUp()
+        fakes.stub_out_key_pair_funcs(self)
+        self.req.api_version_request = \
+            api_version_request.APIVersionRequest('2.39')
+
+    def test_rebuild_accepted_with_keypair_name(self):
+        key_name = "key"
+        fake_get = fakes.fake_compute_get(vm_state=vm_states.ACTIVE,
+                                          key_name=key_name,
+                                          project_id=self.req_project_id,
+                                          user_id=self.req_user_id)
+        self.stubs.Set(compute_api.API, 'get',
+                       lambda api, *a, **k: fake_get(*a, **k))
+
+        self.body['rebuild']['key_name'] = key_name
+        self.req.body = jsonutils.dump_as_bytes(self.body)
+        server = self.controller._action_rebuild(self.req, FAKE_UUID,
+                                                 body=self.body).obj['server']
+        self.assertEqual(server['id'], FAKE_UUID)
+        self.assertEqual(server['key_name'], key_name)
+
+    def test_rebuild_with_not_existed_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_uuid,
+                "key_name": "nonexistentkey"
+            },
+        }
+        self.assertRaises(webob.exc.HTTPBadRequest,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_non_string_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_uuid,
+                "key_name": 12345
+            },
+        }
+        self.assertRaises(exception.ValidationError,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_invalid_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_uuid,
+                "key_name": "123\0d456"
+            },
+        }
+        self.assertRaises(exception.ValidationError,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_empty_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_uuid,
+                "key_name": ''
+            },
+        }
+        self.assertRaises(exception.ValidationError,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
+
+    def test_rebuild_with_too_large_keypair_name(self):
+        body = {
+            "rebuild": {
+                "imageRef": self.image_uuid,
+                "key_name": 256 * "k"
+            },
+        }
+        self.assertRaises(exception.ValidationError,
+                          self.controller._action_rebuild,
+                          self.req, FAKE_UUID, body=body)
 
 
 class ServersControllerRebuildTestV219(ServersControllerRebuildInstanceTest):

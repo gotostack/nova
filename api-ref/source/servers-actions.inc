@@ -406,6 +406,7 @@ Request
   - metadata: metadata
   - personality: personality
   - preserve_ephemeral: preserve_ephemeral
+  - key_name: key_name
 
 **Example Rebuild Server (rebuild Action): JSON request**
 
