@@ -2536,14 +2536,6 @@ class ComputeManagerUnitTestCase(test.NoDBTestCase):
 
         do_test()
 
-    def test_set_admin_password_driver_not_authorized(self):
-        # Ensure expected exception is raised if set_admin_password not
-        # authorized.
-        exc = exception.Forbidden('Internal error')
-        expected_exception = exception.InstancePasswordSetFailed
-        self._do_test_set_admin_password_driver_error(
-            exc, vm_states.ERROR, None, expected_exception)
-
     def test_set_admin_password_driver_not_implemented(self):
         # Ensure expected exception is raised if set_admin_password not
         # implemented by driver.
@@ -2675,14 +2667,6 @@ class ComputeManagerUnitTestCase(test.NoDBTestCase):
                 self.context, instance, mock.ANY, mock.ANY)
 
         do_test()
-
-    def test_set_keypair_driver_not_authorized(self):
-        # Ensure expected exception is raised if set_keypair not
-        # authorized.
-        exc = exception.Forbidden('Internal error')
-        expected_exception = exception.InstanceAdminKeypairSetFailed
-        self._do_test_set_keypair_driver_error(
-            exc, vm_states.ERROR, None, expected_exception)
 
     def test_set_keypair_driver_not_implemented(self):
         # Ensure expected exception is raised if set_keypair not

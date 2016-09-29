@@ -3328,7 +3328,6 @@ class ComputeManager(manager.Manager):
             # Catch all here because this could be anything.
             LOG.exception(_LE('set_admin_password failed'),
                           instance=instance)
-            self._set_instance_obj_error_state(context, instance)
             # We create a new exception here so that we won't
             # potentially reveal password information to the
             # API caller.  The real exception is logged above
@@ -3392,7 +3391,6 @@ class ComputeManager(manager.Manager):
             # Catch all here because this could be anything.
             LOG.exception(_LE('set_keypair failed'),
                           instance=instance)
-            self._set_instance_obj_error_state(context, instance)
             # We create a new exception here so that we won't
             # potentially reveal sensitive information to the
             # API caller.  The real exception is logged above
