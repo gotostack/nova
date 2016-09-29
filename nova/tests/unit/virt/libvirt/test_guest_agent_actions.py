@@ -131,7 +131,7 @@ class QemuAgentActionsTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        ret = ag_actions.reset_admin_password(self.domain, '123')
+        ret = ag_actions.reset_admin_password(self.domain, 'root', '123')
         self.assertTrue(ret)
 
     @mock.patch.object(ag_actions, 'libvirt_qemu')
@@ -195,7 +195,7 @@ class QemuAgentActionsTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        ret = ag_actions.reset_admin_password(self.domain, '123')
+        ret = ag_actions.reset_admin_password(self.domain, 'root', '123')
         self.assertTrue(ret)
 
     @mock.patch.object(ag_actions, 'libvirt_qemu')
@@ -234,7 +234,7 @@ class QemuAgentActionsTestCase(test.NoDBTestCase):
 
         self.mox.ReplayAll()
 
-        ret = ag_actions.reset_keypair(self.domain, 'key')
+        ret = ag_actions.reset_keypair(self.domain, 'root', 'key')
         self.assertTrue(ret)
 
     @mock.patch.object(ag_actions, 'libvirt_qemu')
@@ -253,7 +253,7 @@ class QemuAgentActionsTestCase(test.NoDBTestCase):
 
         self.assertRaises(exception.NovaException,
                           ag_actions.reset_admin_password,
-                          self.domain, '123')
+                          self.domain, 'root', '123')
 
     @mock.patch.object(ag_actions, 'libvirt_qemu')
     def test_reset_admin_password_no_func_enable(self, mock_libvirt_qemu):
@@ -270,7 +270,7 @@ class QemuAgentActionsTestCase(test.NoDBTestCase):
 
         self.assertRaises(exception.NovaException,
                           ag_actions.reset_admin_password,
-                          self.domain, '123')
+                          self.domain, 'root', '123')
 
     @mock.patch.object(ag_actions, 'libvirt_qemu')
     def test_reset_admin_password_shadow_file_out_of_size(self,
@@ -305,7 +305,7 @@ class QemuAgentActionsTestCase(test.NoDBTestCase):
 
         self.assertRaises(exception.NovaException,
                           ag_actions.reset_admin_password,
-                          self.domain, '123')
+                          self.domain, 'root', '123')
 
     @mock.patch.object(ag_actions, 'libvirt_qemu')
     def test_reset_admin_password_shadow_file_empty(self, mock_libvirt_qemu):
@@ -339,4 +339,4 @@ class QemuAgentActionsTestCase(test.NoDBTestCase):
 
         self.assertRaises(exception.NovaException,
                           ag_actions.reset_admin_password,
-                          self.domain, '123')
+                          self.domain, 'root', '123')

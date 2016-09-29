@@ -52,6 +52,7 @@ SET_PASSWORD = COMMAND_ARG % (
 
 SHADOW_PATH = "/etc/shadow"
 ROOT_KEY_PATH = "/root/.ssh/authorized_keys"
+USER_KEY_PATH = "/home/%s/.ssh/authorized_keys"
 CMD_TIMEOUT = 30
 CMD_RET_FLAG = 0
 
@@ -123,14 +124,14 @@ def generate_password(pwd):
     return crypt.crypt(pwd, "$6$%s" % salt)
 
 
-def change_password_by_shadow_file(domain, pwd):
+def change_password_by_shadow_file(domain, user, pwd):
     read_content = read_guest_file(domain, SHADOW_PATH)
     if read_content:
         pwd_content = base64.standard_b64decode(read_content)
         pwd_arry = re.split("\n", pwd_content)
         for i, line in enumerate(pwd_arry):
             info = line.split(":")
-            if info[0] == "root":
+            if info[0] == user:
                 info[1] = generate_password(pwd)
                 pwd_arry[i] = ":".join(info)
         pwd_write = base64.standard_b64encode("\n".join(pwd_arry))
@@ -138,11 +139,11 @@ def change_password_by_shadow_file(domain, pwd):
         return write_count > 0
 
 
-def change_password_by_qagent_cmd(domain, pwd):
+def change_password_by_qagent_cmd(domain, user, pwd):
     try:
         _run_qemu_agent_command(
             domain,
-            SET_PASSWORD % ("root", generate_password(pwd)))
+            SET_PASSWORD % (user, generate_password(pwd)))
         return True
     except Exception as ex:
         msg = _LW("Get supported commands run failed: %s") % ex
@@ -150,9 +151,16 @@ def change_password_by_qagent_cmd(domain, pwd):
         raise exception.NovaException(msg)
 
 
-def change_keypair_by_shadow_file(domain, key):
+def _get_user_authorized_keys_path(user):
+    if user == 'root':
+        return ROOT_KEY_PATH
+    return USER_KEY_PATH % user
+
+
+def change_keypair_by_shadow_file(domain, user, key):
     key_write = base64.standard_b64encode(key)
-    write_count = write_guest_file(domain, ROOT_KEY_PATH, key_write)
+    path = _get_user_authorized_keys_path(user)
+    write_count = write_guest_file(domain, path, key_write)
     return write_count > 0
 
 
@@ -185,23 +193,23 @@ def _get_guest_info(domain):
     return supported_commands
 
 
-def reset_admin_password(domain, pwd):
+def reset_admin_password(domain, user, pwd):
     supported_commands = _get_guest_info(domain)
     if _cmd_enabled("guest-set-user-password", supported_commands):
-        return change_password_by_qagent_cmd(domain, pwd)
+        return change_password_by_qagent_cmd(domain, user, pwd)
 
     if _can_modify_guest_file(supported_commands):
-        return change_password_by_shadow_file(domain, pwd)
+        return change_password_by_shadow_file(domain, user, pwd)
 
     msg = _('QEMU guest agent has no available commands.')
     raise exception.NovaException(msg)
 
 
-def reset_keypair(domain, key):
+def reset_keypair(domain, user, key):
     supported_commands = _get_guest_info(domain)
 
     if _can_modify_guest_file(supported_commands):
-        return change_keypair_by_shadow_file(domain, key)
+        return change_keypair_by_shadow_file(domain, user, key)
 
     msg = _('QEMU guest agent has no available commands.')
     raise exception.NovaException(msg)

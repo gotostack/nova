@@ -1250,7 +1250,9 @@ class LibvirtConnTestCase(test.NoDBTestCase):
         drvr = libvirt_driver.LibvirtDriver(fake.FakeVirtAPI(), True)
         drvr.set_keypair(instance, key)
 
-        mock_reset_keypair.assert_called_once_with(mock.ANY, key.public_key)
+        mock_reset_keypair.assert_called_once_with(mock.ANY,
+                                                   "root",
+                                                   key.public_key)
 
     @mock.patch('nova.utils.get_image_from_system_metadata')
     def test_set_keypair_bad_hyp(self, mock_image):

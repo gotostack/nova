@@ -1793,16 +1793,20 @@ class LibvirtDriver(driver.ComputeDriver):
 
         self._is_qemu_guest_agent_enabled(image_meta)
 
-    def set_admin_password(self, instance, new_pass):
-        self._can_set_admin_password(instance.image_meta)
-
-        guest = self._host.get_guest(instance)
+    def _get_user(self, instance):
         user = instance.image_meta.properties.get("os_admin_user")
         if not user:
             if instance.os_type == "windows":
                 user = "Administrator"
             else:
                 user = "root"
+        return user
+
+    def set_admin_password(self, instance, new_pass):
+        self._can_set_admin_password(instance.image_meta)
+
+        guest = self._host.get_guest(instance)
+        user = self._get_user(instance)
         try:
             guest.set_user_password(user, new_pass)
         except libvirt.libvirtError as ex:
@@ -1819,9 +1823,10 @@ class LibvirtDriver(driver.ComputeDriver):
     def set_keypair(self, instance, key):
         self._can_set_admin_keypair(instance.image_meta)
         guest = self._host.get_guest(instance)
+        user = self._get_user(instance)
         try:
             guest_agent_actions.reset_keypair(
-                guest._domain, key.public_key)
+                guest._domain, user, key.public_key)
         except Exception as ex:
             msg = _('Error from running QEMU guest agnet command: %s') % ex
             raise exception.NovaException(msg)
