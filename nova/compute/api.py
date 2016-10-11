@@ -2444,6 +2444,9 @@ class API(base.Base):
             key = kwargs.pop('key')
             instance.key_name = key.name
             instance.key_data = key.public_key
+        else:
+            instance.key_name = None
+            instance.key_data = None
 
         image_id, image = self._get_image(context, image_href)
         self._check_auto_disk_config(image=image, **kwargs)
