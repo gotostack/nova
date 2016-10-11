@@ -2909,8 +2909,6 @@ class API(base.Base):
     def set_keypair(self, context, instance, key):
         """Set the key pair for the given instance."""
         instance.task_state = task_states.UPDATING_KEYPAIR
-        instance.key_name = key.name
-        instance.key_data = key.public_key
         instance.save(expected_task_state=[None])
 
         self._record_action_start(context, instance,

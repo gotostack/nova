@@ -3366,6 +3366,9 @@ class ComputeManager(manager.Manager):
             self.driver.set_keypair(instance, key)
             LOG.info(_LI("Admin keypair set"), instance=instance)
             instance.task_state = None
+            # After driver success we update the DB object
+            instance.key_name = key.name
+            instance.key_data = key.public_key
             instance.save(
                 expected_task_state=task_states.UPDATING_KEYPAIR)
         except (exception.VirtTypeNotSupported,
