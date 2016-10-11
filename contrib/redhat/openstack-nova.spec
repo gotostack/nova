@@ -8,7 +8,7 @@ Name:             openstack-nova
 # https://review.openstack.org/#/q/I6a35fa0dda798fad93b804d00a46af80f08d475c,n,z
 Epoch:            1
 Version:          13.1.0
-Release:          12%{?dist}
+Release:          13%{?dist}
 Summary:          OpenStack Compute (nova)
 
 License:          ASL 2.0
@@ -818,6 +818,12 @@ exit 0
 %endif
 
 %changelog
+* Tue Oct 11 2016 LIU Yulong <liuyulong@le.com> 1:13.1.0-13
+- Update instance key pair after driver success
+- Not reserve the original key during rebuild without key_name
+- Do not set instance to error state when no harm action failed
+- Add user param to guest_agent_actions
+
 * Tue Sep 20 2016 Gao Zhengwei <gaozhengwei1@le.com> 1:13.1.0-12
 - Special virtual interface's mtu value
 
