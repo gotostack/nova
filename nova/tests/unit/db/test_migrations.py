@@ -885,6 +885,12 @@ class NovaMigrationsCheckers(test_migrations.ModelsMigrationsSync,
                                 'instances_deleted_created_at_idx',
                                 ['deleted', 'created_at'])
 
+    def _check_320(self, engine, data):
+        self.assertColumnExists(engine, 'migrations',
+                                'src_pool')
+        self.assertColumnExists(engine, 'migrations',
+                                'dest_pool')
+
 
 class TestNovaMigrationsSQLite(NovaMigrationsCheckers,
                                test_base.DbTestCase,

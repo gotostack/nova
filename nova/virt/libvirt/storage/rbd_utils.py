@@ -383,6 +383,10 @@ class RBDDriver(object):
             if protect and not vol.is_protected_snap(name):
                 tpool.execute(vol.protect_snap, name)
 
+    def unprotect_snap(self, volume, name, pool=None):
+        with RBDVolumeProxy(self, str(volume), pool=pool) as vol:
+            tpool.execute(vol.unprotect_snap, name)
+
     def remove_snap(self, volume, name, ignore_errors=False, pool=None,
                     force=False):
         """Removes a snapshot from an RBD volume.

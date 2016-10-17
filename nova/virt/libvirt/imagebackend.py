@@ -800,7 +800,8 @@ class Rbd(Image):
             raise RuntimeError(_('You should specify'
                                  ' images_rbd_pool'
                                  ' flag to use rbd images.'))
-        self.pool = CONF.libvirt.images_rbd_pool
+        pool = kwargs.get('pool')
+        self.pool = pool if pool else CONF.libvirt.images_rbd_pool
         self.discard_mode = CONF.libvirt.hw_disk_discard
         self.rbd_user = CONF.libvirt.rbd_user
         self.ceph_conf = CONF.libvirt.images_rbd_ceph_conf
@@ -912,6 +913,16 @@ class Rbd(Image):
         raise exception.ImageUnacceptable(image_id=image_id_or_uri,
                                           reason=reason)
 
+    def clone_cross_pool(self, src_fsid, src_pool, dest_name):
+        location = {'url': 'rbd://%(fsid)s/%(pool)s/%(image)s/%(snap)s' %
+                           dict(fsid=src_fsid,
+                                pool=src_pool,
+                                image=self.rbd_name,
+                                snap=libvirt_utils.RESIZE_SNAPSHOT_NAME)}
+        self.driver.clone(location, dest_name, dest_pool=self.pool)
+        self.driver.flatten(dest_name, pool=self.pool)
+        return location
+
     def get_model(self, connection):
         secret = None
         if CONF.libvirt.rbd_secret_uuid:
@@ -934,11 +945,20 @@ class Rbd(Image):
             self.driver.remove_image(name)
         self.driver.import_image(local_file, name)
 
+    def create_snap_protect(self, name):
+        return self.driver.create_snap(self.rbd_name, name, protect=True)
+
     def create_snap(self, name):
         return self.driver.create_snap(self.rbd_name, name)
 
     def remove_snap(self, name, ignore_errors=False):
         return self.driver.remove_snap(self.rbd_name, name, ignore_errors)
+
+    def unprotect_snap(self, name):
+        self.driver.unprotect_snap(self.rbd_name, name, self.pool)
+
+    def remove_snap_protect(self, name):
+        return self.driver.remove_snap(self.rbd_name, name, force=True)
 
     def rollback_to_snap(self, name):
         return self.driver.rollback_to_snap(self.rbd_name, name)

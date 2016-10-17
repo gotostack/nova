@@ -3683,8 +3683,13 @@ class ComputeManager(manager.Manager):
             block_device_info = self._get_instance_block_device_info(
                                 context, instance, bdms=bdms)
 
-            destroy_disks = not self._is_instance_storage_shared(
+            cross_pool = self.driver.is_cross_pool(migration)
+            is_shared_storage = self._is_instance_storage_shared(
                 context, instance, host=migration.source_compute)
+            destroy_disks = (
+                True if (not is_shared_storage
+                         or (is_shared_storage and cross_pool))
+                else False)
             self.driver.destroy(context, instance, network_info,
                                 block_device_info, destroy_disks)
 
@@ -3978,6 +3983,7 @@ class ComputeManager(manager.Manager):
                     instance_type, network_info,
                     block_device_info,
                     timeout, retry_interval)
+            migration.src_pool = self.driver.get_disk_pool(disk_info)
 
             self._terminate_volume_connections(context, instance, bdms)
 

@@ -23,7 +23,9 @@
             "source_node": "node1",
             "migration_type": "live-migration",
             "status": "running",
-            "updated_at": "2016-01-29T13:42:02.000000"
+            "updated_at": "2016-01-29T13:42:02.000000",
+            "src_pool": null,
+            "dest_pool": null
         },
         {
             "created_at": "2016-01-29T13:42:02.000000",
@@ -38,7 +40,9 @@
             "source_node": "node1",
             "migration_type": "live-migration",
             "status": "error",
-            "updated_at": "2016-01-29T13:42:02.000000"
+            "updated_at": "2016-01-29T13:42:02.000000",
+            "src_pool": null,
+            "dest_pool": null
         },
         {
             "created_at": "2016-01-22T13:42:02.000000",
@@ -53,7 +57,9 @@
             "source_node": "node10",
             "migration_type": "resize",
             "status": "error",
-            "updated_at": "2016-01-22T13:42:02.000000"
+            "updated_at": "2016-01-22T13:42:02.000000",
+            "src_pool": null,
+            "dest_pool": null
         },
         {
             "created_at": "2016-01-22T13:42:02.000000",
@@ -68,7 +74,9 @@
             "source_node": "node10",
             "migration_type": "resize",
             "status": "migrating",
-            "updated_at": "2016-01-22T13:42:02.000000"
+            "updated_at": "2016-01-22T13:42:02.000000",
+            "src_pool": null,
+            "dest_pool": null
         }
     ]
 }

@@ -220,6 +220,12 @@ class FakeDriver(driver.ComputeDriver):
     def poll_rebooting_instances(self, timeout, instances):
         pass
 
+    def is_cross_pool(self, migration):
+        pass
+
+    def get_disk_pool(self, disk_info):
+        pass
+
     def migrate_disk_and_power_off(self, context, instance, dest,
                                    flavor, network_info,
                                    block_device_info=None,

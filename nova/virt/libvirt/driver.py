@@ -1230,7 +1230,7 @@ class LibvirtDriver(driver.ComputeDriver):
             enforce_multipath=True,
             host=CONF.host)
 
-    def _cleanup_resize(self, instance, network_info):
+    def _cleanup_resize(self, instance, network_info, cross_pool=False):
         # NOTE(wangpan): we get the pre-grizzly instance path firstly,
         #                so the backup dir of pre-grizzly instance can
         #                be deleted correctly with grizzly or later nova.
@@ -1258,6 +1258,9 @@ class LibvirtDriver(driver.ComputeDriver):
         if backend.check_image_exists():
             backend.remove_snap(libvirt_utils.RESIZE_SNAPSHOT_NAME,
                                 ignore_errors=True)
+
+        if cross_pool:
+            self._cleanup_rbd(instance)
 
         if instance.host != CONF.host:
             self._undefine_domain(instance)
@@ -1581,6 +1584,21 @@ class LibvirtDriver(driver.ComputeDriver):
 
         return metadata
 
+    def _get_real_pool(self, disk_path):
+        """Only macth format: rbd:pool_name/uuid-uuid-uuid_disk."""
+        if not disk_path:
+            return
+        try:
+            type_pool = disk_path.split('/')[0]
+            if not type_pool:
+                return
+            real_pool = type_pool.split(':')[1]
+            if not real_pool:
+                return
+            return real_pool
+        except IndexError:
+            return
+
     def snapshot(self, context, instance, image_id, update_task_state):
         """Create snapshot from a running VM instance.
 
@@ -1668,7 +1686,14 @@ class LibvirtDriver(driver.ComputeDriver):
         self._prepare_domain_for_snapshot(context, live_snapshot, state,
                                           instance)
 
-        snapshot_backend = self.image_backend.snapshot(instance,
+        real_pool = self._get_real_pool(disk_path)
+        if (source_type == 'rbd' and real_pool
+                and real_pool != CONF.libvirt.images_rbd_pool):
+            snapshot_backend = imagebackend.Rbd(instance,
+                                                path=disk_path,
+                                                pool=real_pool)
+        else:
+            snapshot_backend = self.image_backend.snapshot(instance,
                 disk_path,
                 image_type=source_type)
 
@@ -3140,7 +3165,8 @@ class LibvirtDriver(driver.ComputeDriver):
                       disk_images=None, network_info=None,
                       block_device_info=None, files=None,
                       admin_pass=None, inject_files=True,
-                      fallback_from_host=None):
+                      fallback_from_host=None,
+                      src_pool=None):
         booted_from_volume = self._is_booted_from_volume(
             instance, disk_mapping)
 
@@ -3201,9 +3227,34 @@ class LibvirtDriver(driver.ComputeDriver):
             if size == 0 or suffix == '.rescue':
                 size = None
 
-            backend = image('disk')
+            def _is_cross_pool():
+                return src_pool and src_pool != CONF.libvirt.images_rbd_pool
+
+            if _is_cross_pool():
+                # remote
+                backend = imagebackend.Rbd(instance=instance,
+                                           disk_name='disk' + suffix,
+                                           pool=src_pool)
+                # local
+                backend_local = image('disk')
+            else:
+                backend = image('disk')
+
+            rbd_snap_name = libvirt_utils.RESIZE_SNAPSHOT_NAME
             if instance.task_state == task_states.RESIZE_FINISH:
-                backend.create_snap(libvirt_utils.RESIZE_SNAPSHOT_NAME)
+                if _is_cross_pool():
+                    backend.create_snap_protect(rbd_snap_name)
+                    try:
+                        backend_local.clone_cross_pool(
+                            backend.driver.get_fsid(),
+                            backend.pool,
+                            '%s_%s' % (instance.uuid, 'disk' + suffix))
+                    finally:
+                        backend.unprotect_snap(rbd_snap_name)
+                    backend_local.create_snap(rbd_snap_name)
+                else:
+                    backend.create_snap(rbd_snap_name)
+            image_backend = backend
             if backend.SUPPORTS_CLONE:
                 def clone_fallback_to_fetch(*args, **kwargs):
                     try:
@@ -3211,9 +3262,11 @@ class LibvirtDriver(driver.ComputeDriver):
                     except exception.ImageUnacceptable:
                         libvirt_utils.fetch_image(*args, **kwargs)
                 fetch_func = clone_fallback_to_fetch
+                if _is_cross_pool():
+                    image_backend = backend_local
             else:
                 fetch_func = libvirt_utils.fetch_image
-            self._try_fetch_image_cache(backend, fetch_func, context,
+            self._try_fetch_image_cache(image_backend, fetch_func, context,
                                         root_fname, disk_images['image_id'],
                                         instance, size, fallback_from_host)
 
@@ -6948,6 +7001,7 @@ class LibvirtDriver(driver.ComputeDriver):
 
           * 'type': the disk type (str)
           * 'path': the disk path (str)
+          * 'protocol': the disk protocol (str)
           * 'virt_disk_size': the virtual disk size (int)
           * 'backing_file': backing file of a disk image (str)
           * 'disk_size': physical disk size (int)
@@ -6970,15 +7024,18 @@ class LibvirtDriver(driver.ComputeDriver):
 
         for cnt, path_node in enumerate(path_nodes):
             disk_type = disk_nodes[cnt].get('type')
+            protocol = path_node.get('protocol')
+            name = path_node.get('name')
             path = path_node.get('file') or path_node.get('dev')
             target = target_nodes[cnt].attrib['dev']
 
-            if not path:
+            if not path and protocol != 'rbd':
                 LOG.debug('skipping disk for %s as it does not have a path',
                           instance_name)
                 continue
 
-            if disk_type not in ['file', 'block']:
+            if (disk_type not in ['file', 'block']
+                    and disk_type != 'network' and protocol != 'rbd'):
                 LOG.debug('skipping disk because it looks like a volume', path)
                 continue
 
@@ -6993,6 +7050,10 @@ class LibvirtDriver(driver.ComputeDriver):
                 dk_size = int(os.path.getsize(path))
             elif disk_type == 'block' and block_device_info:
                 dk_size = lvm.get_volume_size(path)
+            elif protocol == 'rbd' and disk_type == 'network':
+                pool = name.split('/')[0]
+                rbd = imagebackend.Rbd(path=name, pool=pool)
+                dk_size = rbd.get_disk_size(name)
             else:
                 LOG.debug('skipping disk %(path)s (%(target)s) - unable to '
                           'determine if volume',
@@ -7004,6 +7065,11 @@ class LibvirtDriver(driver.ComputeDriver):
                 backing_file = libvirt_utils.get_disk_backing_file(path)
                 virt_size = disk.get_disk_size(path)
                 over_commit_size = int(virt_size) - dk_size
+            elif disk_type == "raw" and protocol == "rbd":
+                path = name
+                backing_file = ""
+                virt_size = dk_size
+                over_commit_size = 0
             else:
                 backing_file = ""
                 virt_size = dk_size
@@ -7011,6 +7077,7 @@ class LibvirtDriver(driver.ComputeDriver):
 
             disk_info.append({'type': disk_type,
                               'path': path,
+                              'protocol': protocol,
                               'virt_disk_size': virt_size,
                               'backing_file': backing_file,
                               'disk_size': dk_size,
@@ -7254,6 +7321,8 @@ class LibvirtDriver(driver.ComputeDriver):
 
             active_flavor = instance.get_flavor()
             for info in disk_info:
+                if info.get('protocol') == 'rbd':
+                    continue
                 # assume inst_base == dirname(info['path'])
                 img_path = info['path']
                 fname = os.path.basename(img_path)
@@ -7372,6 +7441,14 @@ class LibvirtDriver(driver.ComputeDriver):
             # will be available
             self._disk_raw_to_qcow2(image.path)
 
+    def get_disk_pool(self, disk_info):
+        disk_info = jsonutils.loads(disk_info)
+        for info in disk_info:
+            protocol = info.get('protocol')
+            path = info.get('path')
+            if protocol == 'rbd' and path and path.endswith('_disk'):
+                return path.split('/')[0]
+
     def finish_migration(self, context, migration, instance, disk_info,
                          network_info, image_meta, resize_instance,
                          block_device_info=None, power_on=True):
@@ -7381,13 +7458,15 @@ class LibvirtDriver(driver.ComputeDriver):
                                                   instance,
                                                   image_meta,
                                                   block_device_info)
+        migration.dest_pool = CONF.libvirt.images_rbd_pool
         # assume _create_image does nothing if a target file exists.
         # NOTE: This has the intended side-effect of fetching a missing
         # backing file.
         self._create_image(context, instance, block_disk_info['mapping'],
                            network_info=network_info,
                            block_device_info=None, inject_files=False,
-                           fallback_from_host=migration.source_compute)
+                           fallback_from_host=migration.source_compute,
+                           src_pool=migration.src_pool)
 
         # Resize root disk and a single ephemeral disk called disk.local
         # Also convert raw disks to qcow2 if migrating to host which uses
@@ -7396,6 +7475,8 @@ class LibvirtDriver(driver.ComputeDriver):
         #               ephemeral disks not called disk.local.
         disk_info = jsonutils.loads(disk_info)
         for info in disk_info:
+            if info.get('protocol') == 'rbd':
+                continue
             path = info['path']
             disk_name = os.path.basename(path)
 
@@ -7533,9 +7614,15 @@ class LibvirtDriver(driver.ComputeDriver):
         LOG.debug("finish_revert_migration finished successfully.",
                   instance=instance)
 
+    def is_cross_pool(self, migration):
+        return (CONF.libvirt.images_type == 'rbd'
+                and migration.src_pool and migration.dest_pool
+                and migration.src_pool != migration.dest_pool)
+
     def confirm_migration(self, migration, instance, network_info):
         """Confirms a resize, destroying the source VM."""
-        self._cleanup_resize(instance, network_info)
+        self._cleanup_resize(instance, network_info,
+                             cross_pool=self.is_cross_pool(migration))
 
     @staticmethod
     def _get_io_devices(xml_doc):

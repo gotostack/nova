@@ -52,6 +52,8 @@ def fake_db_migration(**updates):
         'disk_total': 234567,
         'disk_processed': 23456,
         'disk_remaining': 230000,
+        'src_pool': None,
+        'dest_pool': None,
     }
 
     if updates:

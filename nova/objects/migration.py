@@ -37,7 +37,8 @@ class Migration(base.NovaPersistentObject, base.NovaObject,
     # Version 1.2: Added migration_type and hidden
     # Version 1.3: Added get_by_id_and_instance()
     # Version 1.4: Added migration progress detail
-    VERSION = '1.4'
+    # Version 1.5: Added src_pool and dest_pool
+    VERSION = '1.5'
 
     fields = {
         'id': fields.IntegerField(),
@@ -60,6 +61,8 @@ class Migration(base.NovaPersistentObject, base.NovaObject,
         'disk_total': fields.IntegerField(nullable=True),
         'disk_processed': fields.IntegerField(nullable=True),
         'disk_remaining': fields.IntegerField(nullable=True),
+        'src_pool': fields.StringField(nullable=True),
+        'dest_pool': fields.StringField(nullable=True),
         }
 
     @staticmethod

@@ -12,7 +12,9 @@
             "source_compute": "compute1",
             "source_node": "node1",
             "status": "Done",
-            "updated_at": "2012-10-29T13:42:02.000000"
+            "updated_at": "2012-10-29T13:42:02.000000",
+            "src_pool": null,
+            "dest_pool": null
         },
         {
             "created_at": "2013-10-22T13:42:02.000000",
@@ -26,7 +28,9 @@
             "source_compute": "compute10",
             "source_node": "node10",
             "status": "Done",
-            "updated_at": "2013-10-22T13:42:02.000000"
+            "updated_at": "2013-10-22T13:42:02.000000",
+            "src_pool": null,
+            "dest_pool": null
         }
     ]
 }

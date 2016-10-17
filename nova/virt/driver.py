@@ -524,6 +524,24 @@ class ComputeDriver(object):
         """
         raise NotImplementedError()
 
+    def is_cross_pool(self, migration):
+        """To get migration pool status.
+
+        :param migration: the migrate/resize information
+
+        :return: True if cross pool
+        """
+        raise NotImplementedError()
+
+    def get_disk_pool(self, disk_info):
+        """To get the disk rbd pool from a running instance.
+
+        :param disk_info: the newly transferred disk information.
+
+        :return: rbd pool name
+        """
+        raise NotImplementedError()
+
     def migrate_disk_and_power_off(self, context, instance, dest,
                                    flavor, network_info,
                                    block_device_info=None,

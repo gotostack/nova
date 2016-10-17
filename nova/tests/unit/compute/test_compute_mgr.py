@@ -4354,6 +4354,8 @@ class ComputeManagerMigrationTestCase(test.NoDBTestCase):
                 expected_attrs=['metadata', 'system_metadata', 'info_cache'])
         self.migration = objects.Migration(context=self.context.elevated(),
                                            new_instance_type_id=7)
+        self.migration.src_pool = None
+        self.migration.dest_pool = None
         self.migration.status = 'migrating'
         fake_server_actions.stub_out_action_events(self.stubs)
         self.useFixture(fixtures.SpawnIsSynchronousFixture())

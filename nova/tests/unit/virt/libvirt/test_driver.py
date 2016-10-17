@@ -14493,7 +14493,8 @@ class LibvirtDriverTestCase(test.NoDBTestCase):
                               disk_mapping, suffix='',
                               disk_images=None, network_info=None,
                               block_device_info=None, inject_files=True,
-                              fallback_from_host=None):
+                              fallback_from_host=None,
+                              src_pool=None):
             self.assertFalse(inject_files)
             create_image_called[0] = True
 
@@ -14548,6 +14549,8 @@ class LibvirtDriverTestCase(test.NoDBTestCase):
         migration.dest_compute = 'fake-dest-compute'
         migration.source_node = 'fake-source-node'
         migration.dest_node = 'fake-dest-node'
+        migration.src_pool = None
+        migration.dest_pool = None
         image_meta = objects.ImageMeta.from_dict(self.test_image_meta)
 
         # Source disks are raw to test conversion
@@ -14799,7 +14802,8 @@ class LibvirtDriverTestCase(test.NoDBTestCase):
 
         self.mox.StubOutWithMock(self.drvr, "_cleanup_resize")
         self.drvr._cleanup_resize(ins_ref,
-                             _fake_network_info(self, 1))
+                                  _fake_network_info(self, 1),
+                                  cross_pool=False)
 
         self.mox.ReplayAll()
         self.drvr.confirm_migration("migration_ref", ins_ref,
