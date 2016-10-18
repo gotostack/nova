@@ -49,3 +49,17 @@ migrate_live_v2_25['properties']['os-migrateLive']['properties'][
     'block_migration'] = block_migration
 migrate_live_v2_25['properties']['os-migrateLive']['required'] = (
     ['block_migration', 'host'])
+
+migrate_v2_26 = {
+    'type': 'object',
+    'properties': {
+        'migrate': {
+            'type': 'object',
+            'properties': {
+                'host': host,
+            },
+            'additionalProperties': False
+        }
+    },
+    'additionalProperties': False
+}

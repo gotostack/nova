@@ -39,14 +39,20 @@ class MigrateServerController(wsgi.Controller):
     @wsgi.response(202)
     @extensions.expected_errors((400, 403, 404, 409))
     @wsgi.action('migrate')
+    @validation.schema(migrate_server.migrate_v2_26, "2.26")
     def _migrate(self, req, id, body):
         """Permit admins to migrate a server to a new host."""
         context = req.environ['nova.context']
         authorize(context, action='migrate')
 
+        if migrate_body:
+            host = migrate_body.get("host")
+        else:
+            host = None
         instance = common.get_instance(self.compute_api, context, id)
         try:
-            self.compute_api.resize(req.environ['nova.context'], instance)
+            self.compute_api.resize(req.environ['nova.context'], instance,
+                                    host=host)
         except (exception.TooManyInstances, exception.QuotaError) as e:
             raise exc.HTTPForbidden(explanation=e.format_message())
         except exception.InstanceIsLocked as e:

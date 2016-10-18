@@ -2611,7 +2611,7 @@ class API(base.Base):
     @check_instance_cell
     @check_instance_state(vm_state=[vm_states.ACTIVE, vm_states.STOPPED])
     def resize(self, context, instance, flavor_id=None, clean_shutdown=True,
-               **extra_instance_updates):
+               host=None, **extra_instance_updates):
         """Resize (ie, migrate) a running instance.
 
         If flavor_id is None, the process is considered a migration, keeping
@@ -2689,10 +2689,13 @@ class API(base.Base):
         instance.update(extra_instance_updates)
         instance.save(expected_task_state=[None])
 
-        filter_properties = {'ignore_hosts': []}
-
-        if not CONF.allow_resize_to_same_host:
-            filter_properties['ignore_hosts'].append(instance.host)
+        if host:
+            scheduler_hint = {'host': host}
+        else:
+            filter_properties = {'ignore_hosts': []}
+            if not CONF.allow_resize_to_same_host:
+                filter_properties['ignore_hosts'].append(instance.host)
+            scheduler_hint = {'filter_properties': filter_properties}
 
         if self.cell_type == 'api':
             # Commit reservations early and create migration record.
@@ -2707,7 +2710,6 @@ class API(base.Base):
             self._record_action_start(context, instance,
                                       instance_actions.RESIZE)
 
-        scheduler_hint = {'filter_properties': filter_properties}
         self.compute_task_api.resize_instance(context, instance,
                 extra_instance_updates, scheduler_hint=scheduler_hint,
                 flavor=new_instance_type,
