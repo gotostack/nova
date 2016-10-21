@@ -2707,12 +2707,50 @@ class API(base.Base):
             self._record_action_start(context, instance,
                                       instance_actions.RESIZE)
 
+        if CONF.force_migrate_to_same_zone:
+            hosts = self._get_compute_hosts_by_instance_zone(
+                context, instance)
+            if hosts:
+                filter_properties['force_hosts'] = hosts
+
         scheduler_hint = {'filter_properties': filter_properties}
         self.compute_task_api.resize_instance(context, instance,
                 extra_instance_updates, scheduler_hint=scheduler_hint,
                 flavor=new_instance_type,
                 reservations=quotas.reservations or [],
                 clean_shutdown=clean_shutdown)
+
+    def _get_host_availability_zone(self, host, services):
+        for service in services:
+            if host == service['host']:
+                return service['availability_zone']
+
+    def _get_compute_host_filter(self, instance, services):
+        filters = {'topic': 'compute'}
+        if instance.availability_zone:
+            filters['availability_zone'] = instance.availability_zone
+        else:
+            zone = self._get_host_availability_zone(instance.host,
+                                                    services)
+            if zone:
+                filters['availability_zone'] = zone
+        return filters
+
+    def _get_compute_hosts_by_instance_zone(self, context, instance):
+        services = objects.ServiceList.get_all(context, False,
+                                               set_zones=True)
+        ret_hosts = []
+        filters = self._get_compute_host_filter(instance, services)
+        if not filters.get('availability_zone'):
+            return ret_hosts
+        for service in services:
+            for key, val in six.iteritems(filters):
+                if service[key] != val:
+                    break
+            else:
+                # All filters matched.
+                ret_hosts.append(service['host'])
+        return ret_hosts
 
     @wrap_check_policy
     @check_instance_lock

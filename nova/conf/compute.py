@@ -21,6 +21,10 @@ compute_opts = [
                 default=False,
                 help='Allow destination machine to match source for resize. '
                      'Useful when testing in single-host environments.'),
+    cfg.BoolOpt('force_migrate_to_same_zone',
+                default=False,
+                help='Force migrate or resize instance to the same '
+                     'availability zone.'),
     cfg.StrOpt('default_schedule_zone',
                help='Availability zone to use when user doesn\'t specify one'),
     cfg.ListOpt('non_inheritable_image_properties',

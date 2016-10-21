@@ -1468,16 +1468,42 @@ class _ComputeAPIUnitTestMixIn(object):
                      project_id=None,
                      extra_kwargs=None,
                      same_flavor=False,
-                     clean_shutdown=True):
+                     clean_shutdown=True,
+                     force_migrate_to_same_zone=False):
         if extra_kwargs is None:
             extra_kwargs = {}
 
         self.flags(allow_resize_to_same_host=allow_same_host)
+        self.flags(force_migrate_to_same_zone=force_migrate_to_same_zone)
 
         params = {}
         if project_id is not None:
             # To test instance w/ different project id than context (admin)
             params['project_id'] = project_id
+
+        if force_migrate_to_same_zone:
+            params['availability_zone'] = 'fake_zone1'
+            self.mox.StubOutWithMock(objects.ServiceList, 'get_all')
+            fake_services = [
+                {'host': 'fake_host',
+                 'binary': 'nova-fake',
+                 'topic': 'compute',
+                 'availability_zone': 'fake_zone1'},
+                {'host': 'fake_host1',
+                 'binary': 'nova-fake',
+                 'topic': 'compute',
+                 'availability_zone': 'fake_zone1'},
+                {'host': 'fake_host2',
+                 'binary': 'nova-fake',
+                 'topic': 'compute',
+                 'availability_zone': 'fake_zone2'},
+                {'host': 'fake_host3',
+                 'binary': 'nova-fake',
+                 'topic': 'compute',
+                 'availability_zone': 'fake_zone2'}]
+            objects.ServiceList.get_all(
+                self.context, False, set_zones=True).AndReturn(fake_services)
+
         fake_inst = self._create_instance_obj(params=params)
 
         self.mox.StubOutWithMock(flavors, 'get_flavor_by_flavor_id')
@@ -1528,6 +1554,9 @@ class _ComputeAPIUnitTestMixIn(object):
                 filter_properties = {'ignore_hosts': []}
             else:
                 filter_properties = {'ignore_hosts': [fake_inst['host']]}
+
+            if force_migrate_to_same_zone:
+                filter_properties['force_hosts'] = ['fake_host', 'fake_host1']
 
             if flavor_id_passed:
                 expected_reservations = fake_quotas.reservations
@@ -1609,6 +1638,29 @@ class _ComputeAPIUnitTestMixIn(object):
     def test_resize_forced_shutdown(self):
         self._test_resize(clean_shutdown=False)
 
+    def test_resize_force_to_az(self):
+        self._test_resize(force_migrate_to_same_zone=True)
+
+    def test_resize_with_kwargs_force_to_az(self):
+        self._test_resize(extra_kwargs=dict(cow='moo'),
+                          force_migrate_to_same_zone=True)
+
+    def test_resize_same_host_and_allowed_force_to_az(self):
+        self._test_resize(same_host=True, allow_same_host=True,
+                          force_migrate_to_same_zone=True)
+
+    def test_resize_same_host_and_not_allowed_force_to_az(self):
+        self._test_resize(same_host=True, allow_same_host=False,
+                          force_migrate_to_same_zone=True)
+
+    def test_resize_different_project_id_force_to_az(self):
+        self._test_resize(project_id='different',
+                          force_migrate_to_same_zone=True)
+
+    def test_resize_forced_shutdown_force_to_az(self):
+        self._test_resize(clean_shutdown=False,
+                          force_migrate_to_same_zone=True)
+
     def test_migrate(self):
         self._test_migrate()
 
@@ -1623,6 +1675,25 @@ class _ComputeAPIUnitTestMixIn(object):
 
     def test_migrate_different_project_id(self):
         self._test_migrate(project_id='different')
+
+    def test_migrate_force_to_az(self):
+        self._test_migrate(force_migrate_to_same_zone=True)
+
+    def test_migrate_with_kwargs_force_to_az(self):
+        self._test_migrate(extra_kwargs=dict(cow='moo'),
+                           force_migrate_to_same_zone=True)
+
+    def test_migrate_same_host_and_allowed_force_to_az(self):
+        self._test_migrate(same_host=True, allow_same_host=True,
+                           force_migrate_to_same_zone=True)
+
+    def test_migrate_same_host_and_not_allowed_force_to_az(self):
+        self._test_migrate(same_host=True, allow_same_host=False,
+                           force_migrate_to_same_zone=True)
+
+    def test_migrate_different_project_id_force_to_az(self):
+        self._test_migrate(project_id='different',
+                           force_migrate_to_same_zone=True)
 
     def test_resize_invalid_flavor_fails(self):
         self.mox.StubOutWithMock(flavors, 'get_flavor_by_flavor_id')

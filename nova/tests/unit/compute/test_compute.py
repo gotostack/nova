@@ -5163,7 +5163,8 @@ class ComputeTestCase(BaseTestCase):
     def test_resize_instance_forced_shutdown(self):
         self._test_resize_instance(clean_shutdown=False)
 
-    def _test_confirm_resize(self, power_on, numa_topology=None):
+    def _test_confirm_resize(self, power_on, numa_topology=None,
+                             force_migrate_to_same_zone=False):
         # Common test case method for confirm_resize
         def fake(*args, **kwargs):
             pass
@@ -5181,9 +5182,15 @@ class ComputeTestCase(BaseTestCase):
             old_vm_state = vm_states.STOPPED
             p_state = power_state.SHUTDOWN
         params = {'vm_state': old_vm_state, 'power_state': p_state}
+        if force_migrate_to_same_zone:
+            params['host'] = 'fake_host1'
+            params['availability_zone'] = 'avail_zone1'
+            _create_service_entries(self.context.elevated())
+
         instance = self._create_fake_instance_obj(params)
 
         self.flags(allow_resize_to_same_host=True)
+        self.flags(allow_resize_to_same_host=force_migrate_to_same_zone)
         self.stubs.Set(self.compute.driver, 'finish_migration', fake)
         self.stubs.Set(self.compute.driver, 'confirm_migration',
                        fake_confirm_migration_driver)
@@ -5275,6 +5282,21 @@ class ComputeTestCase(BaseTestCase):
             test_instance_numa_topology.get_fake_obj_numa_topology(
                 self.context))
         self._test_confirm_resize(power_on=True, numa_topology=numa_topology)
+
+    def test_confirm_resize_from_active_force_to_az(self):
+        self._test_confirm_resize(power_on=True,
+                                  force_migrate_to_same_zone=True)
+
+    def test_confirm_resize_from_stopped_force_to_az(self):
+        self._test_confirm_resize(power_on=False,
+                                  force_migrate_to_same_zone=True)
+
+    def test_confirm_resize_with_migration_context_force_to_az(self):
+        numa_topology = (
+            test_instance_numa_topology.get_fake_obj_numa_topology(
+                self.context))
+        self._test_confirm_resize(power_on=True, numa_topology=numa_topology,
+                                  force_migrate_to_same_zone=True)
 
     def _test_finish_revert_resize(self, power_on,
                                    remove_old_vm_state=False,

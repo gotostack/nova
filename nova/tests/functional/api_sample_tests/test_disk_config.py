@@ -71,6 +71,15 @@ class DiskConfigJsonTest(test_servers.ServersSampleBase):
         # Bug #1085213.
         self.assertEqual("", response.content)
 
+    def test_resize_server_force_to_az(self):
+        self.flags(allow_resize_to_same_host=True)
+        self.flags(force_migrate_to_same_zone=True)
+        uuid = self._post_server(use_common_server_api_samples=False)
+        response = self._do_post('servers/%s/action' % uuid,
+                                 'server-resize-post-req', {})
+        self.assertEqual(202, response.status_code)
+        self.assertEqual("", response.content)
+
     def test_rebuild_server(self):
         uuid = self._post_server(use_common_server_api_samples=False)
         subs = {

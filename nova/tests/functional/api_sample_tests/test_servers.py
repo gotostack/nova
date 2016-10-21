@@ -260,6 +260,27 @@ class ServersActionsJsonTest(ServersSampleBase):
                                  'server-action-confirm-resize',
                                  code=204)
 
+    def test_server_resize_force_to_az(self):
+        self.flags(allow_resize_to_same_host=True)
+        self.flags(force_migrate_to_same_zone=True)
+        uuid = self._post_server()
+        self._test_server_action(uuid, "resize",
+                                 'server-action-resize',
+                                 {"id": '2',
+                                  "host": self._get_host()})
+        return uuid
+
+    def test_server_revert_resize_force_to_az(self):
+        uuid = self.test_server_resize_force_to_az()
+        self._test_server_action(uuid, "revertResize",
+                                 'server-action-revert-resize')
+
+    def test_server_confirm_resize_force_to_az(self):
+        uuid = self.test_server_resize_force_to_az()
+        self._test_server_action(uuid, "confirmResize",
+                                 'server-action-confirm-resize',
+                                 code=204)
+
     def test_server_create_image(self):
         uuid = self._post_server()
         self._test_server_action(uuid, 'createImage',
