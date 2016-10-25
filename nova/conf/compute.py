@@ -55,6 +55,11 @@ compute_opts = [
                     'that images will be automatically converted to volumes '
                     'and boot instances from volumes - it just means that all '
                     'requests that attempt to create a local disk will fail.'),
+    cfg.BoolOpt('snapshot_system_disk_to_glance',
+                default=False,
+                help='When instance was booted from volume, this config will '
+                     'make nova only create snapshot (image) of the system '
+                     'disk.'),
 ]
 
 

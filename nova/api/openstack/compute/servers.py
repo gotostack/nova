@@ -1107,8 +1107,9 @@ class ServersController(wsgi.Controller):
                     context, instance.uuid)
 
         try:
-            if self.compute_api.is_volume_backed_instance(context, instance,
-                                                          bdms):
+            if (self.compute_api.is_volume_backed_instance(
+                    context, instance, bdms)
+                        and not CONF.snapshot_system_disk_to_glance):
                 authorize(context, action="create_image:allow_volume_backed")
                 image = self.compute_api.snapshot_volume_backed(
                                                        context,

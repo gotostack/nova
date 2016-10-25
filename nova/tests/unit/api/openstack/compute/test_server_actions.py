@@ -1172,6 +1172,57 @@ class ServerActionsControllerTestV21(test.TestCase):
         self._test_create_volume_backed_image_with_metadata_from_volume(
             extra_metadata={'a': 'b'})
 
+    def test_create_image_instance_boot_from_volume_to_glance(self):
+        self.flags(snapshot_system_disk_to_glance=True)
+
+        def _fake_id(x):
+            return '%s-%s-%s-%s' % (x * 8, x * 4, x * 4, x * 12)
+
+        body = dict(createImage=dict(name='snapshot_system_disk_to_glance'))
+
+        bdm = [dict(volume_id=_fake_id('a'),
+                    volume_size=1,
+                    device_name='vda',
+                    delete_on_termination=False)]
+
+        def fake_block_device_mapping_get_all_by_instance(context, inst_id,
+                                                          use_slave=False):
+            return [fake_block_device.FakeDbBlockDeviceDict(
+                        {'volume_id': _fake_id('a'),
+                         'source_type': 'snapshot',
+                         'destination_type': 'volume',
+                         'volume_size': 1,
+                         'device_name': 'vda',
+                         'snapshot_id': 1,
+                         'boot_index': 0,
+                         'delete_on_termination': False,
+                         'no_device': None})]
+
+        self.stub_out('nova.db.block_device_mapping_get_all_by_instance',
+                      fake_block_device_mapping_get_all_by_instance)
+
+        system_metadata = dict(image_kernel_id=_fake_id('b'),
+                               image_ramdisk_id=_fake_id('c'),
+                               image_root_device_name='/dev/vda',
+                               image_block_device_mapping=str(bdm),
+                               image_container_format='ami')
+
+        instance = fakes.fake_instance_get(image_ref=str(uuid.uuid4()),
+                                           vm_state=vm_states.ACTIVE,
+                                           root_device_name='/dev/vda',
+                                           system_metadata=system_metadata)
+
+        self.stub_out('nova.db.instance_get_by_uuid', instance)
+
+        self.mox.ReplayAll()
+
+        response = self.controller._action_create_image(self.req, FAKE_UUID,
+                                                        body=body)
+
+        location = response.headers['Location']
+        self.assertEqual(self.image_url + '123' if self.image_url else
+                            glance.generate_image_url('123'), location)
+
     def test_create_image_snapshots_disabled(self):
         """Don't permit a snapshot if the allow_instance_snapshots flag is
         False
@@ -1440,3 +1491,7 @@ class ServerActionsControllerTestV2(ServerActionsControllerTestV21):
             self.assertEqual(
                 "Policy doesn't allow %s to be performed." % rule_name,
                 exc.format_message())
+
+    def test_create_image_instance_boot_from_volume_to_glance(self):
+        # NOTE: v2.0 API cannot cover this case, skip this.
+        pass

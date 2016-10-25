@@ -64,6 +64,9 @@ __imagebackend_opts = [
     cfg.StrOpt('images_rbd_ceph_conf',
                default='',  # default determined by librados
                help='Path to the ceph configuration file to use'),
+    cfg.StrOpt('glance_rbd_store_pool',
+               default='',
+               help='The RADOS pool in which glance images are stored.'),
     cfg.StrOpt('hw_disk_discard',
                choices=('ignore', 'unmap'),
                help='Discard option for nova managed disks. Need'
@@ -992,7 +995,14 @@ class Rbd(Image):
         # is configured, but we can infer what storage pool Glance is using
         # by looking at the parent image.  If using authx, write access should
         # be enabled on that pool for the Nova user
-        parent_pool = self._get_parent_pool(context, base_image_id, fsid)
+        if base_image_id:
+            parent_pool = self._get_parent_pool(context, base_image_id, fsid)
+        elif CONF.libvirt.glance_rbd_store_pool:
+            parent_pool = CONF.libvirt.glance_rbd_store_pool
+        else:
+            raise exception.ImageUnacceptable(
+                _('Cannot determine the parent storage pool; '
+                  'cannot determine where to store images'))
 
         # Snapshot the disk and clone it into Glance's storage pool.  librbd
         # requires that snapshots be set to "protected" in order to clone them
