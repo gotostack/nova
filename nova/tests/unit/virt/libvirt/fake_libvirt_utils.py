@@ -170,3 +170,7 @@ def chown_for_id_maps(path, id_maps):
 
 def get_arch(image_meta):
     return libvirt_utils.get_arch(image_meta)
+
+
+def get_pool_name_from_disk_path(disk_path):
+    return libvirt_utils.get_pool_name_from_disk_path(disk_path)

@@ -722,3 +722,30 @@ disk size: 4.4M
             {'properties': {'architecture': "X86_64"}})
         image_arch = libvirt_utils.get_arch(image_meta)
         self.assertEqual(arch.X86_64, image_arch)
+
+
+class GetRBDPoolTestCase(test.NoDBTestCase):
+    def test_invalid_paths(self):
+        invalid_disk_paths = [
+            123, None, object(), "", " ", "123",
+            "aaa:", "aaa:rbd:/", "aaa:rbd:/_",
+            "aaa:aaa_disk", "aaa:_disk", "aaa:disk", "aaa:pool/",
+            "aaa:pool/_disk", "aaa:pool/disk", "aaa:pool/_",
+            "aaa:pool/uuid_disk",
+
+            "rbd:", "rbd:rbd:/", "rbd:rbd:/_",
+            "rbd:aaa_disk", "rbd:_disk", "rbd:disk", "rbd:pool/",
+            "rbd:pool/\?", "rbd:pool/ ="]
+        for path in invalid_disk_paths:
+            return_value = libvirt_utils.get_pool_name_from_disk_path(path)
+            self.assertIsNone(return_value)
+
+    def test_valid_paths(self):
+        valid_disk_paths = [
+            "rbd:pool/_disk", "rbd:pool/disk", "rbd:pool/_",
+            "rbd:pool/123",
+            "rbd:pool-1/_disk", "rbd:pool-1-2/disk", "rbd:pool1-2-3/_",
+            "rbd:pool-1-2-3-4/123"]
+        for path in valid_disk_paths:
+            return_value = libvirt_utils.get_pool_name_from_disk_path(path)
+            self.assertEqual("pool", return_value[:4])

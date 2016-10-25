@@ -341,6 +341,14 @@ def path_exists(path):
     return os.path.exists(path)
 
 
+def _get_first_disk(domain):
+    disks = domain.findall('devices/disk')
+    for disk in disks:
+        if disk.get('device') == 'disk':
+            return disk
+    return domain.find('devices/disk')
+
+
 def find_disk(virt_dom):
     """Find root device path for instance
 
@@ -365,7 +373,7 @@ def find_disk(virt_dom):
         source = filesystem.find('source')
         disk_path = source.get('file')
     else:
-        disk = domain.find('devices/disk')
+        disk = _get_first_disk(domain)
         driver = disk.find('driver')
 
         source = disk.find('source')
@@ -531,3 +539,16 @@ def is_mounted(mount_path, source=None):
 
 def is_valid_hostname(hostname):
     return re.match(r"^[\w\-\.:]+$", hostname)
+
+
+def get_pool_name_from_disk_path(disk_path):
+    """Only macth format: rbd:<pool_name>/<disk_name>."""
+    if not disk_path:
+        return
+    path = str(disk_path).strip()
+    if not path:
+        return
+    pattern = re.compile(r"rbd:([\w\-]+)/([\w\-]+)")
+    m = pattern.match(path)
+    if m:
+        return m.group(1)

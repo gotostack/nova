@@ -1668,7 +1668,15 @@ class LibvirtDriver(driver.ComputeDriver):
         self._prepare_domain_for_snapshot(context, live_snapshot, state,
                                           instance)
 
-        snapshot_backend = self.image_backend.snapshot(instance,
+        real_pool = libvirt_utils.get_pool_name_from_disk_path(disk_path)
+        LOG.debug("The real rbd backend pool is: %s", real_pool)
+        if (source_type == 'rbd' and real_pool
+                and real_pool != CONF.libvirt.images_rbd_pool):
+            snapshot_backend = imagebackend.Rbd(instance,
+                                                path=disk_path,
+                                                pool=real_pool)
+        else:
+            snapshot_backend = self.image_backend.snapshot(instance,
                 disk_path,
                 image_type=source_type)
 
