@@ -1573,6 +1573,15 @@ class RbdTestCase(_ImageTestCase, test.NoDBTestCase):
             mock_destroy.assert_called_once_with(image.rbd_name,
                                                  pool=image.pool)
 
+    def test_directly_set_rbd_imagebackend_pool(self):
+        backend1 = imagebackend.Rbd(path="a/b")
+        # Default pool name is equal to images_rbd_pool
+        self.assertEqual(self.POOL, backend1.pool)
+
+        pool_name = "pool-name"
+        backend2 = imagebackend.Rbd(path="a/b", pool=pool_name)
+        self.assertEqual(pool_name, backend2.pool)
+
 
 class PloopTestCase(_ImageTestCase, test.NoDBTestCase):
     SIZE = 1024
