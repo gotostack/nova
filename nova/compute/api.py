@@ -2356,6 +2356,13 @@ class API(base.Base):
             if bdm.no_device:
                 continue
 
+            if CONF.only_snapshot_sys:
+                if block_device.get_device_letter(
+                        bdm.get('device_name', '')) != 'a':
+                    continue
+                elif bdm.get('boot_index') != 0:
+                    continue
+
             if bdm.is_volume:
                 # create snapshot based on volume_id
                 volume = self.volume_api.get(context, bdm.volume_id)

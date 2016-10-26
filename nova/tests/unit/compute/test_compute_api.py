@@ -2230,7 +2230,9 @@ class _ComputeAPIUnitTestMixIn(object):
                                                           instance)
 
     def _test_snapshot_volume_backed(self, quiesce_required, quiesce_fails,
-                                     vm_state=vm_states.ACTIVE):
+                                     vm_state=vm_states.ACTIVE,
+                                     only_sys=False):
+        self.flags(only_snapshot_sys=only_sys)
         fake_sys_meta = {'image_min_ram': '11',
                          'image_min_disk': '22',
                          'image_container_format': 'ami',
@@ -2346,13 +2348,14 @@ class _ComputeAPIUnitTestMixIn(object):
                  'source_type': 'blank', 'destination_type': 'local',
                  'guest_format': 'swap', 'delete_on_termination': True})
         instance_bdms.append(bdm)
-        expect_meta['properties']['block_device_mapping'].append(
-            {'guest_format': 'swap', 'boot_index': -1, 'no_device': False,
-             'image_id': None, 'volume_id': None, 'disk_bus': None,
-             'volume_size': None, 'source_type': 'blank',
-             'device_type': None, 'snapshot_id': None,
-             'device_name': '/dev/vdh',
-             'destination_type': 'local', 'delete_on_termination': True})
+        if not only_sys:
+            expect_meta['properties']['block_device_mapping'].append(
+                {'guest_format': 'swap', 'boot_index': -1, 'no_device': False,
+                 'image_id': None, 'volume_id': None, 'disk_bus': None,
+                 'volume_size': None, 'source_type': 'blank',
+                 'device_type': None, 'snapshot_id': None,
+                 'device_name': '/dev/vdh',
+                 'destination_type': 'local', 'delete_on_termination': True})
 
         quiesced = [False, False]
 
@@ -2379,6 +2382,28 @@ class _ComputeAPIUnitTestMixIn(object):
     def test_snapshot_volume_backed_with_quiesce_stopped(self):
         self._test_snapshot_volume_backed(True, True,
                                           vm_state=vm_states.STOPPED)
+
+    def test_snapshot_volume_backed_only_sys(self):
+        self._test_snapshot_volume_backed(False, False,
+                                          only_sys=True)
+
+    def test_snapshot_volume_backed_with_quiesce_only_sys(self):
+        self._test_snapshot_volume_backed(True, False,
+                                          only_sys=True)
+
+    def test_snapshot_volume_backed_with_quiesce_skipped_only_sys(self):
+        self._test_snapshot_volume_backed(False, True,
+                                          only_sys=True)
+
+    def test_snapshot_volume_backed_with_quiesce_exception_only_sys(self):
+        self.assertRaises(exception.NovaException,
+                          self._test_snapshot_volume_backed, True, True,
+                                          only_sys=True)
+
+    def test_snapshot_volume_backed_with_quiesce_stopped_only_sys(self):
+        self._test_snapshot_volume_backed(True, True,
+                                          vm_state=vm_states.STOPPED,
+                                          only_sys=True)
 
     def test_volume_snapshot_create(self):
         volume_id = '1'

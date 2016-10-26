@@ -17,6 +17,10 @@
 from oslo_config import cfg
 
 compute_opts = [
+    cfg.BoolOpt('only_snapshot_sys',
+                default=False,
+                help='Only create snapshot for instance system disk volume '
+                     'sda/vda.'),
     cfg.BoolOpt('allow_resize_to_same_host',
                 default=False,
                 help='Allow destination machine to match source for resize. '
