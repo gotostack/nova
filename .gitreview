@@ -1,5 +1,5 @@
 [gerrit]
-host=review.et.letv.com
+host=legit.letv.cn
 port=29418
 project=iaas/openstack/nova.git
 defaultbranch=mitaka
